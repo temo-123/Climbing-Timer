@@ -3,6 +3,8 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaVie
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import Footer from '../components/Footer';
+import { globalStyles } from '../styles/globalStyles';
 
 type RootStackParamList = {
   CreateWorkout: undefined;
@@ -26,9 +28,8 @@ export default function WorkoutCreatorScreen() {
   const [hangTime, setHangTime] = useState('240');
   const [restTime, setRestTime] = useState('240');
   const [reps, setReps] = useState('6');
-  const [sets, setSets] = useState('4');
+const [sets, setSets] = useState('4');
   const [recoverTime, setRecoverTime] = useState('180');
-  const navigation = useNavigation<NavigationProp>();
 
   const saveWorkout = async () => {
     if (!name.trim()) {
@@ -58,15 +59,22 @@ export default function WorkoutCreatorScreen() {
     }
   };
 
+  const navigation = useNavigation<NavigationProp>();
+
   return (
     <SafeAreaView style={styles.container}>
+      <View style={globalStyles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Text style={globalStyles.backText}>← Back</Text>
+        </TouchableOpacity>
+        <Text style={globalStyles.title}>Create New Workout</Text>
+      </View>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <Text style={styles.title}>Create New Workout</Text>
         
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Name</Text>
+          <Text style={globalStyles.label}>Name</Text>
           <TextInput
-            style={styles.input}
+            style={globalStyles.input}
             value={name}
             onChangeText={setName}
             placeholder="e.g., 4/4 x6"
@@ -75,9 +83,9 @@ export default function WorkoutCreatorScreen() {
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Hang Time (seconds)</Text>
+          <Text style={globalStyles.label}>Hang Time (seconds)</Text>
           <TextInput
-            style={styles.input}
+            style={globalStyles.input}
             value={hangTime}
             onChangeText={setHangTime}
             keyboardType="numeric"
@@ -86,9 +94,9 @@ export default function WorkoutCreatorScreen() {
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Rest Time (seconds)</Text>
+          <Text style={globalStyles.label}>Rest Time (seconds)</Text>
           <TextInput
-            style={styles.input}
+            style={globalStyles.input}
             value={restTime}
             onChangeText={setRestTime}
             keyboardType="numeric"
@@ -97,9 +105,9 @@ export default function WorkoutCreatorScreen() {
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Reps</Text>
+          <Text style={globalStyles.label}>Reps</Text>
           <TextInput
-            style={styles.input}
+            style={globalStyles.input}
             value={reps}
             onChangeText={setReps}
             keyboardType="numeric"
@@ -108,9 +116,9 @@ export default function WorkoutCreatorScreen() {
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Sets</Text>
+          <Text style={globalStyles.label}>Sets</Text>
           <TextInput
-            style={styles.input}
+            style={globalStyles.input}
             value={sets}
             onChangeText={setSets}
             keyboardType="numeric"
@@ -119,9 +127,9 @@ export default function WorkoutCreatorScreen() {
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Recover Time (seconds)</Text>
+          <Text style={globalStyles.label}>Recover Time (seconds)</Text>
           <TextInput
-            style={styles.input}
+            style={globalStyles.input}
             value={recoverTime}
             onChangeText={setRecoverTime}
             keyboardType="numeric"
@@ -129,12 +137,14 @@ export default function WorkoutCreatorScreen() {
           />
         </View>
 
-        <TouchableOpacity style={styles.saveButton} onPress={saveWorkout}>
-          <Text style={styles.saveButtonText}>Save Workout</Text>
+        <TouchableOpacity style={globalStyles.button} onPress={saveWorkout}>
+          <Text style={globalStyles.buttonText}>Save Workout</Text>
         </TouchableOpacity>
       </ScrollView>
+      <Footer />
     </SafeAreaView>
   );
+
 }
 
 const styles = StyleSheet.create({
@@ -147,42 +157,8 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
   },
-  title: {
-    fontSize: 28,
-    color: '#fff',
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 40,
-  },
   inputGroup: {
     marginBottom: 25,
-  },
-  label: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: '#2d2d2d',
-    color: '#fff',
-    padding: 15,
-    borderRadius: 10,
-    fontSize: 18,
-    borderWidth: 1,
-    borderColor: '#4ecdc4',
-  },
-  saveButton: {
-    backgroundColor: '#4ecdc4',
-    padding: 20,
-    borderRadius: 15,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  saveButtonText: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold',
   },
 });
 

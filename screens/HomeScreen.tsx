@@ -1,7 +1,10 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import Footer from '../components/Footer';
+import { globalStyles } from '../styles/globalStyles';
 
 type RootStackParamList = {
   Home: undefined;
@@ -21,48 +24,26 @@ export default function HomeScreen() {
   const goToHistory = () => navigation.navigate('History');
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Climbing Timer</Text>
-      <TouchableOpacity style={styles.button} onPress={goToLoad}>
-        <Text style={styles.buttonText}>Load my workouts</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.button} onPress={goToCreate}>
-        <Text style={styles.buttonText}>Create and save new workout</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.button} onPress={goToHistory}>
-        <Text style={styles.buttonText}>My workouts history</Text>
-      </TouchableOpacity>
+    <SafeAreaView style={globalStyles.container}>
+      <View style={[globalStyles.content, { alignItems: 'center' }]}>
+        <Text style={globalStyles.title}>Climbing Timer</Text>
+        <TouchableOpacity style={globalStyles.button} onPress={goToLoad}>
+          <Text style={globalStyles.buttonText}>Load my workouts</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={globalStyles.button} onPress={goToCreate}>
+          <Text style={globalStyles.buttonText}>Create and save new workout</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={globalStyles.button} onPress={goToHistory}>
+          <Text style={globalStyles.buttonText}>My workouts history</Text>
+        </TouchableOpacity>
+      </View>
+      <Footer />
     </SafeAreaView>
   );
+
+
+
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#1a1a1a',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  title: {
-    fontSize: 32,
-    color: '#fff',
-    fontWeight: 'bold',
-    marginBottom: 50,
-  },
-  button: {
-    backgroundColor: '#4ecdc4',
-    paddingHorizontal: 30,
-    paddingVertical: 20,
-    borderRadius: 15,
-    marginBottom: 20,
-    width: '80%',
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-});
+
 

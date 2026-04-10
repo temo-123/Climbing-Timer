@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, FlatList, StyleSheet, SafeAreaView, Alert
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import Footer from '../components/Footer';
+import { globalStyles } from '../styles/globalStyles';
 
 type RootStackParamList = {
   LoadWorkouts: undefined;
@@ -58,22 +60,25 @@ export default function WorkoutsListScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>My Workouts</Text>
-      {workouts.length === 0 ? (
-        <Text style={styles.emptyText}>No workouts saved. Create one first!</Text>
-      ) : (
+      <View style={globalStyles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Text style={globalStyles.backText}>← Back</Text>
+        </TouchableOpacity>
+        <Text style={globalStyles.title}>My Workouts ({workouts.length})</Text>
+      </View>
+      <View style={globalStyles.content}>
         <FlatList
           data={workouts}
           renderItem={renderWorkout}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
         />
-      )}
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-        <Text style={styles.backButtonText}>Back to Home</Text>
-      </TouchableOpacity>
+      </View>
+      <Footer />
+      
     </SafeAreaView>
   );
+
 }
 
 const styles = StyleSheet.create({
