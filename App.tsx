@@ -9,13 +9,8 @@ import WorkoutsListScreen from './screens/WorkoutsListScreen';
 import HistoryScreen from './screens/HistoryScreen';
 import TimerScreen from './screens/TimerScreen';
 
-export type RootStackParamList = {
-  Home: undefined;
-  CreateWorkout: undefined;
-  LoadWorkouts: undefined;
-  History: undefined;
-  Timer: { workout: any };
-};
+import { RootStackParamList } from './types/navigation';
+
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 

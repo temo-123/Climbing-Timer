@@ -1,21 +1,19 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../types/navigation';
 import Footer from '../components/Footer';
 import { globalStyles } from '../styles/globalStyles';
-
-type RootStackParamList = {
-  CreateWorkout: undefined;
-  Home: undefined;
-};
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'CreateWorkout'>;
 
 interface Workout {
   id: string;
   name: string;
+  description?: string;
   hangTime: number;
   restTime: number;
   reps: number;
@@ -30,6 +28,7 @@ export default function WorkoutCreatorScreen() {
   const [reps, setReps] = useState('6');
 const [sets, setSets] = useState('4');
   const [recoverTime, setRecoverTime] = useState('180');
+  const [description, setDescription] = useState('');
 
   const saveWorkout = async () => {
     if (!name.trim()) {
@@ -45,6 +44,7 @@ const [sets, setSets] = useState('4');
       reps: parseInt(reps) || 6,
       sets: parseInt(sets) || 4,
       recoverTime: parseInt(recoverTime) || 180,
+      description: description.trim() || '',
     };
 
     try {
@@ -69,78 +69,108 @@ const [sets, setSets] = useState('4');
         </TouchableOpacity>
         <Text style={globalStyles.title}>Create New Workout</Text>
       </View>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        
-        <View style={styles.inputGroup}>
-          <Text style={globalStyles.label}>Name</Text>
-          <TextInput
-            style={globalStyles.input}
-            value={name}
-            onChangeText={setName}
-            placeholder="e.g., 4/4 x6"
-            placeholderTextColor="#aaa"
-          />
-        </View>
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }} 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <ScrollView 
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps='handled'
+          showsVerticalScrollIndicator={false}
+        >
+          
+          <View style={styles.inputGroup}>
+            <Text style={globalStyles.label}>Name</Text>
+            <TextInput
+              style={globalStyles.input}
+              value={name}
+              onChangeText={setName}
+              placeholder="e.g., 4/4 x6"
+              placeholderTextColor="#aaa"
+              returnKeyType="next"
+            />
+          </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={globalStyles.label}>Hang Time (seconds)</Text>
-          <TextInput
-            style={globalStyles.input}
-            value={hangTime}
-            onChangeText={setHangTime}
-            keyboardType="numeric"
-            placeholder="240"
-          />
-        </View>
+          <View style={styles.inputGroup}>
+            <Text style={globalStyles.label}>Description (optional)</Text>
+            <TextInput
+              style={globalStyles.input}
+              value={description}
+              onChangeText={setDescription}
+              placeholder="Add notes about this workout..."
+              placeholderTextColor="#aaa"
+              multiline
+              numberOfLines={3}
+              returnKeyType="done"
+            />
+          </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={globalStyles.label}>Rest Time (seconds)</Text>
-          <TextInput
-            style={globalStyles.input}
-            value={restTime}
-            onChangeText={setRestTime}
-            keyboardType="numeric"
-            placeholder="240"
-          />
-        </View>
+          <View style={styles.inputGroup}>
+            <Text style={globalStyles.label}>Hang Time (seconds)</Text>
+            <TextInput
+              style={globalStyles.input}
+              value={hangTime}
+              onChangeText={setHangTime}
+              keyboardType="numeric"
+              placeholder="240"
+              returnKeyType="next"
+            />
+          </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={globalStyles.label}>Reps</Text>
-          <TextInput
-            style={globalStyles.input}
-            value={reps}
-            onChangeText={setReps}
-            keyboardType="numeric"
-            placeholder="6"
-          />
-        </View>
+          <View style={styles.inputGroup}>
+            <Text style={globalStyles.label}>Rest Time (seconds)</Text>
+            <TextInput
+              style={globalStyles.input}
+              value={restTime}
+              onChangeText={setRestTime}
+              keyboardType="numeric"
+              placeholder="240"
+              returnKeyType="next"
+            />
+          </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={globalStyles.label}>Sets</Text>
-          <TextInput
-            style={globalStyles.input}
-            value={sets}
-            onChangeText={setSets}
-            keyboardType="numeric"
-            placeholder="4"
-          />
-        </View>
+          <View style={styles.inputGroup}>
+            <Text style={globalStyles.label}>Reps</Text>
+            <TextInput
+              style={globalStyles.input}
+              value={reps}
+              onChangeText={setReps}
+              keyboardType="numeric"
+              placeholder="6"
+              returnKeyType="next"
+            />
+          </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={globalStyles.label}>Recover Time (seconds)</Text>
-          <TextInput
-            style={globalStyles.input}
-            value={recoverTime}
-            onChangeText={setRecoverTime}
-            keyboardType="numeric"
-            placeholder="180"
-          />
-        </View>
+          <View style={styles.inputGroup}>
+            <Text style={globalStyles.label}>Sets</Text>
+            <TextInput
+              style={globalStyles.input}
+              value={sets}
+              onChangeText={setSets}
+              keyboardType="numeric"
+              placeholder="4"
+              returnKeyType="next"
+            />
+          </View>
 
-        <TouchableOpacity style={globalStyles.button} onPress={saveWorkout}>
-          <Text style={globalStyles.buttonText}>Save Workout</Text>
-        </TouchableOpacity>
-      </ScrollView>
+          <View style={styles.inputGroup}>
+            <Text style={globalStyles.label}>Recover Time (seconds)</Text>
+            <TextInput
+              style={globalStyles.input}
+              value={recoverTime}
+              onChangeText={setRecoverTime}
+              keyboardType="numeric"
+              placeholder="180"
+              returnKeyType="next"
+            />
+          </View>
+
+          <TouchableOpacity style={globalStyles.button} onPress={saveWorkout}>
+            <Text style={globalStyles.buttonText}>Save Workout</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
       <Footer />
     </SafeAreaView>
   );

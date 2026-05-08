@@ -3,16 +3,9 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../types/navigation';
 import Footer from '../components/Footer';
 import { globalStyles } from '../styles/globalStyles';
-
-type RootStackParamList = {
-  Home: undefined;
-  CreateWorkout: undefined;
-  LoadWorkouts: undefined;
-  History: undefined;
-  Timer: { workout: any };
-};
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 

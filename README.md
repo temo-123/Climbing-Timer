@@ -1,4 +1,4 @@
-# ClimbingTimer 🧗‍♂️
+# ClimbingTimer 🧗
 
 **Product by [climbing.ge](https://climbing.ge)** - Georgia's premier climbing community platform for routes, gyms, events, and training tools.
 
