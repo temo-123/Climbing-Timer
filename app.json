@@ -32,8 +32,9 @@
     },
     "extra": {
       "eas": {
-        "projectId": ""
+        "projectId": "4062e158-2e3f-4cf0-8980-44e862076fca"
       }
-    }
+    },
+    "owner": "temo-123"
   }
 }
