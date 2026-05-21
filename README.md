@@ -1,196 +1,83 @@
-# ClimbingTimer 🧗
+# ClimbingTimer
 
-**Product by [climbing.ge](https://climbing.ge)** - Georgia's premier climbing community platform for routes, gyms, events, and training tools.
+A mobile training timer for climbers and boulderers. Build custom hangboard workouts, run timed sessions with automatic phase transitions, and track your history.
 
-**Author: Temo Samsonadze** - Full-stack developer passionate about climbing and mobile apps.
+**Product by [climbing.ge](https://climbing.ge)** — Georgia's premier climbing community.  
+**Author:** Temo Samsonadze
 
-A mobile training timer app for climbers and boulderers. Create custom hangboard workouts, run timed sessions with hang/rest/recover phases, and track your history with charts and stats.
+---
 
-![App Screenshot](screenshots/home.png) <!-- Add screenshots here -->
+## Quick Start
 
-## 🚀 Quick Start
-
-**Environment Versions:**
-- Node.js: v20.20.1
-- npm: 10.8.2  
-- npx: 10.8.2
+Requirements: Node.js v20+, npm v10+
 
 ```bash
-# Clone or navigate to project
-cd ClimbingTimer
-
-# Install dependencies
 npm install
-
-# Start development server
-npx expo start
-
-# For Android
-npx expo start --android
-
-# For iOS (Mac only)
-npx expo start --ios
+npm start          # opens Expo dev server — scan QR with Expo Go app
+npm run android    # launch on connected Android device or emulator
+npm run ios        # launch on iOS simulator (Mac only)
 ```
 
+---
 
-## 📱 Screens Overview
+## How to Use
 
-The app uses a **Native Stack Navigator** (React Navigation v7) with 5 screens. No tab bar or drawer – pure stack navigation with custom back buttons.
+### 1. Create a Workout
+Go to **Create New Workout** and fill in:
 
-| Screen | Route | Component | Purpose | Input Params |
-|--------|-------|-----------|---------|--------------|
-| **Home** 🏠 | `Home` | `HomeScreen.tsx` | Main hub with quick action buttons | None |
-| **Create Workout** ➕ | `CreateWorkout` | `WorkoutCreatorScreen.tsx` | Build &amp; save custom workouts | None |
-| **My Workouts** 📋 | `LoadWorkouts` | `WorkoutsListScreen.tsx` | List saved workouts &amp; start sessions | None |
-| **Timer** ⏱️ | `Timer` | `TimerScreen.tsx` | Run workout with live timing | `{ workout: Workout }` |
-| **History** 📊 | `History` | `HistoryScreen.tsx` | View session stats &amp; charts | None |
+| Field | What it means | Default |
+|-------|--------------|---------|
+| Name | Label for this workout | — |
+| Hang Time | How long you hang each rep | 240s (4 min) |
+| Rest Time | Rest between reps | 240s (4 min) |
+| Reps | Reps per set | 6 |
+| Sets | Number of sets | 4 |
+| Recover Time | Rest between sets | 180s (3 min) |
+| Description | Optional notes | — |
 
-### Navigation Flow
+All times are in **seconds**. Minimum value for each field is 1.
+
+### 2. Run a Workout
+Open **My Workouts**, find your workout, tap **Start**.
+
+The timer cycles automatically:
 ```
-Home ──➤ CreateWorkout (save workouts)
-     ├──➤ LoadWorkouts ──➤ Timer (run workout ──➤ auto-save history)
-     └──➤ History (view history)
+GET READY (12s) → HANG → REST → HANG → REST → ... → RECOVER → HANG → ...
 ```
-- **Back Navigation**: Manual `< Back` buttons in custom headers + `navigation.goBack()`.
-- Headers hidden globally (`headerShown: false`).
+Each phase has a distinct color and the phone vibrates on every transition so you don't have to watch the screen.
 
-## 💾 Data Storage &amp; Persistence
+**Controls:**
 
-**Local-only** using `@react-native-async-storage/async-storage`. No cloud sync.
+| Button | Action |
+|--------|--------|
+| START / PAUSE | Begin or pause the timer |
+| STOP | End the session early (saved as failed) |
+| Reset | Restart from the beginning (saved as failed if you were past rep 1) |
+| Skip | Jump to the next phase immediately |
 
-### Storage Schema
+### 3. View History
+Open **Workout History** to see your recent sessions. Each entry shows the date, workout name, reps and sets completed, and whether it was a success or stopped early.
 
-```typescript
-// WORKOUTS: AsyncStorage.getItem('workouts') → Workout[]
-interface Workout {
-  id: string;           // Date.now().toString()
-  name: string;         // e.g. "4/4 x6"
-  hangTime: number;     // seconds, default 240 (4min)
-  restTime: number;     // seconds, default 240
-  reps: number;         // default 6
-  sets: number;         // default 4
-  recoverTime: number;  // seconds, default 180 (3min)
-}
+---
 
-// HISTORY: AsyncStorage.getItem('history') → HistoryEntry[]
-interface HistoryEntry {
-  date: string;             // ISO string, new Date().toISOString()
-  workoutName: string;      // Copied from Workout.name
-  repsCompleted: number;    // Actual reps finished (tracked live)
-  setsCompleted: number;    // Actual sets finished
-}
-```
+## Workout Phase Colors
 
-### How Workouts Are Saved
-1. User fills form in **CreateWorkout** (name required, others numeric inputs w/ defaults).
-2. `saveWorkout()`:
-   ```typescript
-   const workout: Workout = { id: Date.now().toString(), ... };
-   const workouts: Workout[] = await getItem('workouts') || [];
-   workouts.push(workout);
-   await setItem('workouts', JSON.stringify(workouts));
-   Alert.success → goBack();
-   ```
-3. Appended to array (no updates/deletes).
+| Phase | Color | Vibration |
+|-------|-------|-----------|
+| Get Ready | Orange | — |
+| Hang | Red | Double buzz |
+| Rest | Blue | Single buzz |
+| Recover | Green | Single buzz |
+| Finished | — | Triple buzz |
 
-### How Workout History Is Saved
-1. Select workout in **My Workouts** → `navigate('Timer', { workout })`.
-2. **Timer** runs phases: HANG → REST (x reps) → RECOVER (x sets). Tracks `currentRep`, `currentSet` via refs.
-3. On final set complete (auto or skip):
-   ```typescript
-   const entry: HistoryEntry = {
-     date: new Date().toISOString(),
-     workoutName: workout.name,
-     repsCompleted: currentRep - 1,
-     setsCompleted: currentSet - 1
-   };
-   const history: HistoryEntry[] = await getItem('history') || [];
-   history.push(entry);
-   await setItem('history', JSON.stringify(history));
-   Alert('Session Complete!') → goBack();
-   ```
-4. **History** screen loads, sorts reverse (newest first, max 30), computes charts.
+---
 
-## 🏋️ Workout Lifecycle (Detailed)
+## Data Storage
 
-### 1. Create → Home → CreateWorkout
-- Inputs: Name, Hang (s), Rest (s), Reps, Sets, Recover (s).
-- Defaults: 240s hang/rest, 6 reps, 4 sets, 180s recover.
-- Save appends to `'workouts'`.
+All data is stored locally on your device using AsyncStorage. There is no cloud sync or account required. Uninstalling the app will delete all saved workouts and history.
 
-### 2. List → Home → My Workouts
-- Loads/sorts `'workouts'`.
-- Displays: "Hang Xm / Rest Xm xN reps \| M sets \| Recover Xm".
-- Tap **Start** → TimerScreen with workout param.
+---
 
-### 3. Run → TimerScreen
-- **State**: `timeLeft`, `phase` ('hang'/'rest'/'recover'), `currentRep/Set`, `isRunning`.
-- **1s Interval** (useEffect + refs for perf):
-  - Counts down `timeLeft`.
-  - At 0:
-    | Current | Next Action |
-    |---------|-------------|
-    | hang (rep < reps) | → rest @ restTime, rep++ |
-    | rest | → hang @ hangTime |
-    | hang (rep == reps) | → recover @ recoverTime, rep=1 |
-    | recover (set < sets) | → hang @ hangTime, set++ |
-    | recover (set == sets) | SAVE history, complete |
-- **Controls**:
-  | Button | Action |
-  |--------|--------|
-  | START/PAUSE | Toggle interval |
-  | RESET | Back to rep1/set1 hang |
-  | Skip Rep/Set | Manual advance (no time save) |
-- **Visual**: Large timer MM:SS, phase label, progress "Rep X/6 \| Set Y/4".
+## License
 
-### 4. Track → HistoryScreen
-- **Daily Chart** (last 7 days): Sessions count bars (#4ecdc4).
-- **Monthly Chart** (last 6 mo): Total reps bars (#ff6b6b, max 500).
-- **Recent** (top 10): Date, Name, "X reps x Y sets".
-- Reloads on mount (`useEffect`).
-
-## 🏗️ Architecture
-
-```
-App.tsx
-├── NavigationContainer + Stack.Navigator (5 screens)
-├── RootStackParamList (types)
-
-Screens/
-├── HomeScreen.tsx (buttons + Footer)
-├── WorkoutCreatorScreen.tsx (form + AsyncStorage save)
-├── WorkoutsListScreen.tsx (FlatList + load workouts)
-├── TimerScreen.tsx (interval logic + refs + save history)
-└── HistoryScreen.tsx (charts + aggregations)
-
-Shared/
-├── components/Footer.tsx (simple footer)
-├── styles/globalStyles.ts (dark theme: #1a1a1a bg, teal #4ecdc4 buttons)
-└── AsyncStorage utils (inline getItem/parse/setItem)
-```
-
-- **Hooks**: `useState`, `useEffect` (load + interval), `useCallback` (stable fns), `useRef` (mutable state).
-- **No Context/Redux**: Pure local state + props.
-- **Error Handling**: Try/catch + Alert on storage fails.
-- **Perf**: Refs prevent re-renders in interval; cleanup on unmount.
-
-## ✨ Key Features
-
-- **Multi-Phase Timer**: Precise cycling w/ skips.
-- **Progress Tracking**: Live rep/set counters.
-- **History Analytics**: Bar charts (daily sessions, monthly reps).
-- **Persistent Workouts**: Unlimited saves, no limits.
-- **Responsive UI**: SafeArea, dark theme, tabular fonts.
-- **Offline-First**: All data local.
-
-## 🔮 Future Enhancements (Ideas)
-- Edit/delete workouts.
-- Cloud sync (Firebase).
-- Workout templates.
-- Export CSV history.
-- Notifications.
-- Share sessions.
-
-## 📄 License
-MIT - Built with ❤️ for climbers.
-
+MIT — Built with love for climbers.

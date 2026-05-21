@@ -11,6 +11,16 @@ import { globalStyles } from '../styles/globalStyles';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'LoadWorkouts'>;
 
+const formatDuration = (seconds: number): string => {
+  if (seconds < 60) return `${seconds}s`;
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
+};
+
+const calcTotalDuration = (w: Workout): number =>
+  12 + w.sets * (w.reps * w.hangTime + (w.reps - 1) * w.restTime) + (w.sets - 1) * w.recoverTime;
+
 interface Workout {
   id: string;
   name: string;
@@ -74,7 +84,10 @@ export default function WorkoutsListScreen() {
       <View style={styles.workoutInfo}>
         <Text style={styles.workoutName}>{item.name}</Text>
         <Text style={styles.workoutDetails}>
-          Hang {item.hangTime / 60}m / Rest {item.restTime / 60}m x{item.reps} reps | {item.sets} sets | Recover {item.recoverTime / 60}m
+          Hang {formatDuration(item.hangTime)} / Rest {formatDuration(item.restTime)} × {item.reps} reps | {item.sets} sets | Recover {formatDuration(item.recoverTime)}
+        </Text>
+        <Text style={styles.workoutTotal}>
+          Total: ~{formatDuration(calcTotalDuration(item))}
         </Text>
         {item.description ? (
           <Text style={styles.workoutDescription} numberOfLines={2}>
@@ -112,6 +125,12 @@ export default function WorkoutsListScreen() {
           renderItem={renderWorkout}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No workouts saved yet.</Text>
+              <Text style={styles.emptySubText}>Create one to get started!</Text>
+            </View>
+          }
         />
       </View>
       <Footer />
@@ -167,6 +186,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 10,
     fontStyle: 'italic',
+  },
+  workoutTotal: {
+    color: '#4ecdc4',
+    fontSize: 13,
+    marginTop: 2,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    marginTop: 60,
+  },
+  emptyText: {
+    color: '#aaa',
+    fontSize: 18,
+    textAlign: 'center',
+  },
+  emptySubText: {
+    color: '#666',
+    fontSize: 15,
+    marginTop: 8,
   },
   workoutActions: {
     flexDirection: 'row',

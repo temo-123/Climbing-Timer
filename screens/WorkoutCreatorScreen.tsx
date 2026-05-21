@@ -35,15 +35,28 @@ const [sets, setSets] = useState('4');
       Alert.alert('Error', 'Workout name is required');
       return;
     }
+    const parsedHang = parseInt(hangTime) || 0;
+    const parsedRest = parseInt(restTime) || 0;
+    const parsedReps = parseInt(reps) || 0;
+    const parsedSets = parseInt(sets) || 0;
+    const parsedRecover = parseInt(recoverTime) || 0;
+    if (parsedHang < 1 || parsedRest < 1 || parsedRecover < 1) {
+      Alert.alert('Error', 'Hang, Rest, and Recover times must be at least 1 second');
+      return;
+    }
+    if (parsedReps < 1 || parsedSets < 1) {
+      Alert.alert('Error', 'Reps and Sets must be at least 1');
+      return;
+    }
 
     const workout: Workout = {
       id: Date.now().toString(),
       name: name.trim(),
-      hangTime: parseInt(hangTime) || 240,
-      restTime: parseInt(restTime) || 240,
-      reps: parseInt(reps) || 6,
-      sets: parseInt(sets) || 4,
-      recoverTime: parseInt(recoverTime) || 180,
+      hangTime: parsedHang,
+      restTime: parsedRest,
+      reps: parsedReps,
+      sets: parsedSets,
+      recoverTime: parsedRecover,
       description: description.trim() || '',
     };
 

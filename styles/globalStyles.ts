@@ -138,4 +138,18 @@ export const globalStyles = StyleSheet.create({
     borderRadius: 5,
     marginHorizontal: 10,
   },
+  congratsTitle: {
+    fontSize: 32,
+    color: '#4ecdc4',
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  congratsStats: {
+    fontSize: 22,
+    color: '#fff',
+    textAlign: 'center',
+    marginBottom: 10,
+    fontWeight: '600',
+  },
 });

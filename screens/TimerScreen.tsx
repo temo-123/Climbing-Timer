@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Dimensions, Alert } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, Dimensions, Alert, Vibration, Animated } from 'react-native';
+import * as Speech from 'expo-speech';
 import Svg, { Circle } from 'react-native-svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StatusBar } from 'expo-status-bar';
@@ -54,6 +55,46 @@ export default function TimerScreen({ route, navigation }: Props) {
   currentSetRef.current = currentSet;
   isRunningRef.current = isRunning;
 
+  // Vibrate whenever phase changes so user doesn't have to watch the screen
+  const prevPhaseRef = useRef<Phase>('prepare');
+  useEffect(() => {
+    if (phase !== prevPhaseRef.current) {
+      prevPhaseRef.current = phase;
+      if (phase === 'hang') {
+        Vibration.vibrate([0, 150, 80, 150]);
+      } else if (phase === 'rest' || phase === 'recover') {
+        Vibration.vibrate(250);
+      }
+    }
+  }, [phase]);
+
+  // Blink animation for the last 3 seconds of each phase
+  const blinkAnim = useRef(new Animated.Value(1)).current;
+  const blinkLoopRef = useRef<Animated.CompositeAnimation | null>(null);
+  useEffect(() => {
+    const isCountdown = isRunning && !isFinished && phase !== 'prepare' && timeLeft <= 3 && timeLeft > 0;
+    if (isCountdown) {
+      blinkLoopRef.current = Animated.loop(
+        Animated.sequence([
+          Animated.timing(blinkAnim, { toValue: 0.15, duration: 250, useNativeDriver: true }),
+          Animated.timing(blinkAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
+        ])
+      );
+      blinkLoopRef.current.start();
+    } else {
+      blinkLoopRef.current?.stop();
+      blinkAnim.setValue(1);
+    }
+    return () => { blinkLoopRef.current?.stop(); };
+  }, [timeLeft, isRunning, isFinished, phase]);
+
+  // Voice countdown: speak "3", "2", "1" before each phase ends
+  useEffect(() => {
+    if (isRunning && !isFinished && phase !== 'prepare' && timeLeft >= 1 && timeLeft <= 4) {
+      Speech.speak(String(timeLeft), { rate: 1.2, pitch: 1.0 });
+    }
+  }, [timeLeft]);
+
   const reps = workout.reps || 6;
   const sets = workout.sets || 4;
   const hangTime = workout.hangTime || 240;
@@ -96,15 +137,32 @@ export default function TimerScreen({ route, navigation }: Props) {
     }
   };
 
-  const finishWorkout = useCallback(() => {
+  const finishWorkout = useCallback(async () => {
     setIsRunning(false);
-    saveHistory('success');
+    // Use reps/sets directly — the full workout was completed
+    const entry: HistoryEntry = {
+      date: new Date().toISOString(),
+      workoutName: workout.name,
+      repsCompleted: reps,
+      setsCompleted: sets,
+      status: 'success',
+    };
+    try {
+      const stored = await AsyncStorage.getItem('history');
+      const history: HistoryEntry[] = stored ? JSON.parse(stored) : [];
+      history.push(entry);
+      await AsyncStorage.setItem('history', JSON.stringify(history));
+    } catch (error) {
+      console.log('History save error:', error);
+    }
+    Vibration.vibrate([0, 200, 100, 200, 100, 200]);
     setIsFinished(true);
-  }, [workout]);
+  }, [workout, reps, sets]);
 
   const resetWorkout = useCallback(() => {
     setIsRunning(false);
-    if (currentSet > 1 || currentRep > 1) {
+    Speech.stop();
+    if (currentSetRef.current > 1 || currentRepRef.current > 1) {
       saveHistory('failed');
     }
     setTimeLeft(12);
@@ -118,6 +176,7 @@ export default function TimerScreen({ route, navigation }: Props) {
 
   const stopWorkout = useCallback(() => {
     setIsRunning(false);
+    Speech.stop();
     saveHistory('failed');
     Alert.alert('Workout Stopped', 'Workout marked as failed and saved to history.');
     navigation.navigate('Home' as any);
@@ -128,7 +187,12 @@ export default function TimerScreen({ route, navigation }: Props) {
     const currRep = currentRepRef.current;
     const currSet = currentSetRef.current;
 
-    if (currPhase === 'hang') {
+    if (currPhase === 'prepare') {
+      setPhase('hang');
+      phaseRef.current = 'hang';
+      setCurrentDuration(hangTime);
+      setTimeLeft(hangTime);
+    } else if (currPhase === 'hang') {
       // End hang, start rest
       setPhase('rest');
       phaseRef.current = 'rest';
@@ -170,6 +234,7 @@ export default function TimerScreen({ route, navigation }: Props) {
 
   const toggleRunning = useCallback(() => {
     setIsRunning(prev => {
+      if (prev) Speech.stop();
       isRunningRef.current = !prev;
       return !prev;
     });
@@ -287,18 +352,18 @@ export default function TimerScreen({ route, navigation }: Props) {
 
         <View style={styles.timerContainer}>
           <Text style={[globalStyles.phase, { color: getPhaseColor(phase) }]}>{phase === 'prepare' ? 'GET READY' : phase.toUpperCase()}</Text>
-          <View style={styles.timeContainer}>
+          <Animated.View style={[styles.timeContainer, { opacity: blinkAnim }]}>
             <Svg width={320} height={320} style={{ position: 'absolute' }}>
               <Circle cx="160" cy="160" r="145" stroke="#333" strokeWidth="10" fill="none" strokeOpacity="0.4" />
-              <Circle 
-                cx="160" cy="160" r="145" 
-                stroke={getPhaseColor(phase)} strokeWidth="10" fill="none" 
-                strokeLinecap="round" strokeDasharray="911" strokeDashoffset={progress * 911} 
+              <Circle
+                cx="160" cy="160" r="145"
+                stroke={getPhaseColor(phase)} strokeWidth="10" fill="none"
+                strokeLinecap="round" strokeDasharray="911" strokeDashoffset={progress * 911}
                 rotation="-90" origin="160,160"
               />
             </Svg>
             <Text style={[globalStyles.time, { color: getPhaseColor(phase) }]}>{formatTime(timeLeft)}</Text>
-          </View>
+          </Animated.View>
           <View style={styles.rounds}>
             <Text style={[styles.roundText, { color: getPhaseColor(phase) }]}>{phase === 'prepare' ? 'Preparation' : `Rep ${currentRep}/${reps} | Set ${currentSet}/${sets}`}</Text>
           </View>
