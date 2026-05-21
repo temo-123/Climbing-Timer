@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "391572387684",
+    "project_id": "climbing-timer-d4d28",
+    "storage_bucket": "climbing-timer-d4d28.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:391572387684:android:dd981741732d03625a2c71",
+        "android_client_info": {
+          "package_name": "com.climbingtimer.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDQx2Orjzt6D5Qvfe5lapf8lKCHChM0hv4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
