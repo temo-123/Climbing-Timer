@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import { RootStackParamList } from '../types/navigation';
-import { Workout, TrainingType } from '../types/models';
+import { Workout, TrainingType, UserProfile, Equipment } from '../types/models';
 import { Exercise, EXERCISES_BY_TYPE, DIFFICULTY_COLORS, localizedExercise, getDifficultyLabel } from '../data/exercises';
 import { TYPE_EMOJIS } from '../data/presetPlans';
 import { globalStyles } from '../styles/globalStyles';
@@ -13,10 +14,11 @@ import Footer from '../components/Footer';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'CustomTraining'>;
 
-const TABS: { type: TrainingType }[] = [
-  { type: 'fingerboard' },
-  { type: 'campus' },
-  { type: 'flexibility' },
+const ALL_TABS: { type: TrainingType; requiredEquipment: Equipment | null }[] = [
+  { type: 'fingerboard', requiredEquipment: 'fingerboard' },
+  { type: 'campus',      requiredEquipment: 'campus_board' },
+  { type: 'endurance',   requiredEquipment: 'system_wall' },
+  { type: 'flexibility', requiredEquipment: null },
 ];
 
 const formatSec = (s: number) => {
@@ -28,10 +30,37 @@ export default function CustomTrainingScreen() {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   const navigation = useNavigation<NavigationProp>();
+  const [userEquipment, setUserEquipment] = useState<Equipment[]>([]);
   const [activeTab, setActiveTab] = useState<TrainingType>('fingerboard');
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
+  const [imageUris, setImageUris] = useState<Record<string, string>>({});
 
-  const exercises = EXERCISES_BY_TYPE(activeTab);
+  useFocusEffect(useCallback(() => {
+    Promise.all([
+      AsyncStorage.getItem('userProfile'),
+      AsyncStorage.getItem('exerciseImageUris'),
+    ]).then(([profileRaw, urisRaw]) => {
+      if (profileRaw) {
+        const profile: UserProfile = JSON.parse(profileRaw);
+        const equip = profile.equipment || [];
+        setUserEquipment(equip);
+        const tabs = getAvailableTabs(equip);
+        if (tabs.length > 0 && !tabs.find(tab => tab.type === activeTab)) {
+          setActiveTab(tabs[0].type);
+        }
+      }
+      if (urisRaw) setImageUris(JSON.parse(urisRaw));
+    }).catch(() => {});
+  }, []));
+
+  const getAvailableTabs = (equip: Equipment[]) => ALL_TABS.filter(tab =>
+    tab.requiredEquipment === null || equip.includes(tab.requiredEquipment)
+  );
+
+  const tabs = getAvailableTabs(userEquipment);
+  const effectiveTab = tabs.find(t => t.type === activeTab) ? activeTab : (tabs[0]?.type ?? 'flexibility');
+
+  const exercises = EXERCISES_BY_TYPE(effectiveTab);
   const lEx = (ex: Exercise) => localizedExercise(ex, lang);
 
   const getTypeDesc = (type: TrainingType) => t(`custom.type_desc_${type}`);
@@ -39,6 +68,7 @@ export default function CustomTrainingScreen() {
   const getWorkLabel = (type: TrainingType) => {
     if (type === 'campus') return t('custom.move_lbl');
     if (type === 'flexibility') return t('custom.stretch_lbl');
+    if (type === 'endurance') return t('custom.circuit_lbl');
     return t('custom.hang_lbl');
   };
 
@@ -72,14 +102,14 @@ export default function CustomTrainingScreen() {
       </View>
 
       <View style={styles.tabs}>
-        {TABS.map(tab => (
+        {tabs.map(tab => (
           <TouchableOpacity
             key={tab.type}
-            style={[styles.tab, activeTab === tab.type && styles.tabActive]}
+            style={[styles.tab, effectiveTab === tab.type && styles.tabActive]}
             onPress={() => setActiveTab(tab.type)}
           >
             <Text style={styles.tabEmoji}>{TYPE_EMOJIS[tab.type]}</Text>
-            <Text style={[styles.tabLabel, activeTab === tab.type && styles.tabLabelActive]}>
+            <Text style={[styles.tabLabel, effectiveTab === tab.type && styles.tabLabelActive]}>
               {t(`custom.${tab.type}`)}
             </Text>
           </TouchableOpacity>
@@ -87,7 +117,7 @@ export default function CustomTrainingScreen() {
       </View>
 
       <View style={styles.typeDesc}>
-        <Text style={styles.typeDescText}>{getTypeDesc(activeTab)}</Text>
+        <Text style={styles.typeDescText}>{getTypeDesc(effectiveTab)}</Text>
         <Text style={styles.typeDescCount}>{t('custom.n_exercises', { n: exercises.length })}</Text>
       </View>
 
@@ -101,7 +131,14 @@ export default function CustomTrainingScreen() {
             onPress={() => setSelectedExercise(ex)}
             activeOpacity={0.85}
           >
-            <Image source={ex.imageSource} style={styles.cardImage} resizeMode="cover" />
+            {ex.type === 'fingerboard' && !userEquipment.includes('fingerboard')
+              ? <Text style={styles.cardDescOnly}>{lEx(ex).description}</Text>
+              : <Image
+                  source={imageUris[ex.id] ? { uri: imageUris[ex.id] } : ex.imageSource}
+                  style={styles.cardImage}
+                  resizeMode="cover"
+                />
+            }
             <View style={styles.cardBody}>
               <View style={styles.cardTitleRow}>
                 <Text style={styles.cardName}>{loc.name}</Text>
@@ -158,7 +195,13 @@ export default function CustomTrainingScreen() {
           <View style={styles.modalOverlay}>
             <View style={styles.modalSheet}>
               <ScrollView showsVerticalScrollIndicator={false}>
-                <Image source={selectedExercise.imageSource} style={styles.modalImage} resizeMode="contain" />
+                {!(selectedExercise.type === 'fingerboard' && !userEquipment.includes('fingerboard')) && (
+                  <Image
+                    source={imageUris[selectedExercise.id] ? { uri: imageUris[selectedExercise.id] } : selectedExercise.imageSource}
+                    style={styles.modalImage}
+                    resizeMode="contain"
+                  />
+                )}
                 <View style={styles.modalBody}>
                   <View style={styles.cardTitleRow}>
                     <Text style={styles.modalName}>{selLoc.name}</Text>
@@ -256,4 +299,6 @@ const styles = StyleSheet.create({
   bigStartBtnText: { color: '#fff', fontSize: 18, fontWeight: '800' },
   closeBtn: { alignItems: 'center', padding: 12 },
   closeBtnText: { color: '#888', fontSize: 15 },
+  cardDescOnly: { color: '#aaa', fontSize: 13, lineHeight: 19, padding: 14, paddingBottom: 4 },
+  modalFingerboad: { padding: 16, paddingBottom: 0 },
 });

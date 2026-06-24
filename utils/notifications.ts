@@ -1,8 +1,13 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { TrainingPlan } from '../types/models';
 
+const isExpoGo = () => Constants.executionEnvironment === 'storeClient';
+
 export const initNotifications = async () => {
+  if (isExpoGo()) return;
+
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,
@@ -25,6 +30,8 @@ export const initNotifications = async () => {
 };
 
 export const requestNotificationPermissions = async (): Promise<boolean> => {
+  if (isExpoGo()) return false;
+
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   if (existingStatus === 'granted') return true;
 
@@ -40,6 +47,8 @@ export const scheduleTrainingNotifications = async (
   plan: TrainingPlan,
   notificationTime: string
 ): Promise<string[]> => {
+  if (isExpoGo()) return [];
+
   const [hourStr, minuteStr] = notificationTime.split(':');
   const hour = parseInt(hourStr, 10);
   const minute = parseInt(minuteStr, 10);
@@ -73,6 +82,8 @@ export const scheduleTrainingNotifications = async (
 };
 
 export const cancelNotifications = async (ids: string[]): Promise<void> => {
+  if (isExpoGo()) return;
+
   for (const id of ids) {
     try {
       await Notifications.cancelScheduledNotificationAsync(id);

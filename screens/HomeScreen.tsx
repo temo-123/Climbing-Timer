@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import Footer from '../components/Footer';
 import TodayModal from '../components/TodayModal';
+import ShopBanner from '../components/ShopBanner';
 import { RootStackParamList } from '../types/navigation';
 import { TrainingPlan, HistoryEntry, PlanSession } from '../types/models';
 import { PRESET_PLANS, localizedPlan } from '../data/presetPlans';
@@ -90,9 +91,12 @@ export default function HomeScreen() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.greeting}>{getGreeting()}</Text>
-            <Text style={styles.appTitle}>{t('home.app_title')}</Text>
+          <View style={styles.headerLeft}>
+            <Image source={require('../assets/logo.png')} style={styles.logo} resizeMode="contain" />
+            <View>
+              <Text style={styles.greeting}>{getGreeting()}</Text>
+              <Text style={styles.appTitle}>{t('home.app_title')}</Text>
+            </View>
           </View>
           {streak > 0 && (
             <View style={styles.streakBadge}>
@@ -174,6 +178,9 @@ export default function HomeScreen() {
             <Text style={styles.secondaryLabel}>{t('home.create_workout')}</Text>
           </TouchableOpacity>
         </View>
+
+        {/* climbing.ge shop banner */}
+        <ShopBanner />
       </ScrollView>
 
       {modalVisible && activePlan && todaySession && (
@@ -198,6 +205,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#1a1a1a' },
   scroll: { padding: 20, paddingBottom: 12 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, paddingTop: 8 },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  logo: { width: 44, height: 44 },
   greeting: { color: '#888', fontSize: 13, marginBottom: 2 },
   appTitle: { color: '#fff', fontSize: 30, fontWeight: '900', letterSpacing: -0.5 },
   streakBadge: { backgroundColor: '#2d2d2d', borderRadius: 14, paddingVertical: 10, paddingHorizontal: 14, alignItems: 'center' },

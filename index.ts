@@ -1,3 +1,4 @@
+import './utils/silenceExpoGoWarnings'; // must be first — patches console before any module loads
 import { registerRootComponent } from 'expo';
 
 import App from './App';

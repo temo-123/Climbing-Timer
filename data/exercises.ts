@@ -29,20 +29,22 @@ const IMAGES = {
   pinch:        require('../assets/exercises/pinch.png'),
   sloper:       require('../assets/exercises/sloper.png'),
   two_finger:   require('../assets/exercises/two_finger.png'),
-  // Campus
-  campus_board: require('../assets/exercises/campus_board.png'),
+  // Campus — per exercise
+  campus_matching:  require('../assets/exercises/campus_matching.png'),
+  campus_laddering: require('../assets/exercises/campus_laddering.png'),
+  campus_135:       require('../assets/exercises/campus_135.png'),
+  campus_dynos:     require('../assets/exercises/campus_dynos.png'),
+  campus_lockoff:   require('../assets/exercises/campus_lockoff.png'),
+  // Systemboard — per exercise
+  end_arc:       require('../assets/exercises/end_arc.png'),
+  end_4x4:       require('../assets/exercises/end_4x4.png'),
+  end_threshold: require('../assets/exercises/end_threshold.png'),
+  end_repeaters: require('../assets/exercises/end_repeaters.png'),
+  end_power:     require('../assets/exercises/end_power.png'),
   // Flexibility
-  wrist_flexion:      require('../assets/exercises/wrist_flexion.png'),
-  wrist_extension:    require('../assets/exercises/wrist_extension.png'),
-  forearm_stretch:    require('../assets/exercises/forearm_stretch.png'),
-  hip_flexor:         require('../assets/exercises/hip_flexor.png'),
-  hamstring:          require('../assets/exercises/hamstring.png'),
-  shoulder_cross:     require('../assets/exercises/shoulder_cross.png'),
-  chest_open:         require('../assets/exercises/chest_open.png'),
-  lat_stretch:        require('../assets/exercises/lat_stretch.png'),
-  hip_rotation:       require('../assets/exercises/hip_rotation.png'),
-  calf_stretch:       require('../assets/exercises/calf_stretch.png'),
-  thoracic_rotation:  require('../assets/exercises/thoracic_rotation.png'),
+  flex_yoga_balance: require('../assets/exercises/flex_yoga_balance.png'),
+  flex_yoga_cobra:   require('../assets/exercises/flex_yoga_cobra.png'),
+  flex_yoga_stretch: require('../assets/exercises/flex_yoga_stretch.png'),
 };
 
 export const EXERCISES: Exercise[] = [
@@ -123,7 +125,7 @@ export const EXERCISES: Exercise[] = [
     targetMuscle: 'Contact strength & coordination',
     description: 'Move up one rung at a time, matching both hands on each rung before moving. Footless throughout. Builds basic campus coordination.',
     coachTip: 'The goal is moving without feet, not going fast. Control the catch on each rung — don\'t just fall onto it. Matching trains you to stay calm under dynamic movement.',
-    imageSource: IMAGES.campus_board,
+    imageSource: IMAGES.campus_matching,
     workout: { hangTime: 8, restTime: 112, reps: 5, sets: 3, recoverTime: 240 },
   },
   {
@@ -134,7 +136,7 @@ export const EXERCISES: Exercise[] = [
     targetMuscle: 'Contact strength & power endurance',
     description: 'Left hand on rung 1, right on 2, left on 3 — alternating hands, moving up. The foundation of campus board training. Start small (rungs 1-2-3).',
     coachTip: 'Never campus when tired — you train bad movement patterns and risk injury. Do campus FIRST in a session, before any climbing or hangboard. Quality over quantity.',
-    imageSource: IMAGES.campus_board,
+    imageSource: IMAGES.campus_laddering,
     workout: { hangTime: 6, restTime: 174, reps: 4, sets: 3, recoverTime: 300 },
   },
   {
@@ -145,7 +147,7 @@ export const EXERCISES: Exercise[] = [
     targetMuscle: 'Explosive power & contact strength',
     description: 'Start on rung 1, skip to rung 3, then 5 — one hand at a time. Each move skips a rung, demanding much more explosive power.',
     coachTip: 'This is serious training. Full rest between attempts (4+ min). Stop the session if you miss the same move twice — tired nervous system won\'t adapt, it just gets injured.',
-    imageSource: IMAGES.campus_board,
+    imageSource: IMAGES.campus_135,
     workout: { hangTime: 5, restTime: 235, reps: 4, sets: 3, recoverTime: 360 },
   },
   {
@@ -156,7 +158,7 @@ export const EXERCISES: Exercise[] = [
     targetMuscle: 'Explosive power & lock-off',
     description: 'From matched position on a rung, explode upward and catch a rung higher with both hands simultaneously. Develops raw explosive power.',
     coachTip: 'This is for advanced campus trainers only. The catch with both hands at once creates extreme loading. If you can\'t lock off for 3 seconds after the catch, you\'re not ready.',
-    imageSource: IMAGES.campus_board,
+    imageSource: IMAGES.campus_dynos,
     workout: { hangTime: 4, restTime: 236, reps: 3, sets: 3, recoverTime: 360 },
   },
   {
@@ -167,7 +169,7 @@ export const EXERCISES: Exercise[] = [
     targetMuscle: 'Bicep, lats & lock-off strength',
     description: 'Move to a rung and hold a 90° arm position (lock-off) for as long as possible before moving up. Develops the ability to pull through hard moves.',
     coachTip: 'Lock-off strength is what separates climbers who can reach past a crux hold. Hold each lock-off for a full 3 seconds, don\'t rush to the next rung.',
-    imageSource: IMAGES.campus_board,
+    imageSource: IMAGES.campus_lockoff,
     workout: { hangTime: 6, restTime: 174, reps: 5, sets: 3, recoverTime: 240 },
   },
 
@@ -180,7 +182,7 @@ export const EXERCISES: Exercise[] = [
     targetMuscle: 'Wrist extensors (top of forearm)',
     description: 'Arm extended forward, palm facing down, bend the wrist downward. Use the other hand to gently increase the stretch.',
     coachTip: 'Hold at the point of tension, never pain. This is often tight after heavy fingerboard sessions. Daily practice prevents wrist tendinopathy.',
-    imageSource: IMAGES.wrist_flexion,
+    imageSource: IMAGES.flex_yoga_cobra,
     workout: { hangTime: 30, restTime: 15, reps: 3, sets: 2, recoverTime: 30 },
   },
   {
@@ -191,7 +193,7 @@ export const EXERCISES: Exercise[] = [
     targetMuscle: 'Wrist & finger flexors (climbing muscles!)',
     description: 'Arm extended, palm facing outward, bend the wrist back toward you. This stretches the muscles that get most pumped climbing.',
     coachTip: 'THE most important stretch for climbers. These are the muscles that fail on a hard route. Do this every day, before and after climbing. Breathe deeply through the stretch.',
-    imageSource: IMAGES.wrist_extension,
+    imageSource: IMAGES.flex_yoga_stretch,
     workout: { hangTime: 40, restTime: 15, reps: 3, sets: 2, recoverTime: 30 },
   },
   {
@@ -202,7 +204,7 @@ export const EXERCISES: Exercise[] = [
     targetMuscle: 'Tricep & latissimus dorsi',
     description: 'Raise one arm, bend elbow behind head. Use other hand to gently push the elbow back and down. Hold the deepest comfortable position.',
     coachTip: 'Tight lats restrict high arm positions and reduce pulling efficiency. This stretch improves your ability to reach past your limit and mantleshelf comfortably.',
-    imageSource: IMAGES.forearm_stretch,
+    imageSource: IMAGES.flex_yoga_stretch,
     workout: { hangTime: 35, restTime: 15, reps: 3, sets: 2, recoverTime: 30 },
   },
   {
@@ -213,7 +215,7 @@ export const EXERCISES: Exercise[] = [
     targetMuscle: 'Hip flexors & psoas',
     description: 'Low lunge position, back knee on the ground. Sink the hips forward and down. Keep torso upright to maximize the stretch.',
     coachTip: 'Tight hip flexors kill your high-step technique on steep terrain. This is the #1 overlooked stretch for climbers. Do this daily — each side 2 minutes minimum for real change.',
-    imageSource: IMAGES.hip_flexor,
+    imageSource: IMAGES.flex_yoga_cobra,
     workout: { hangTime: 45, restTime: 15, reps: 2, sets: 2, recoverTime: 30 },
   },
   {
@@ -224,7 +226,7 @@ export const EXERCISES: Exercise[] = [
     targetMuscle: 'Hamstrings & calf',
     description: 'Sit on the floor, legs straight. Reach forward over your legs, keeping your back as flat as possible. Let gravity do the work.',
     coachTip: 'Tight hamstrings prevent high foot placements and limit stemming. Don\'t round your back — hinge from the hips. Flex your quads slightly to deepen the hamstring stretch.',
-    imageSource: IMAGES.hamstring,
+    imageSource: IMAGES.flex_yoga_balance,
     workout: { hangTime: 45, restTime: 15, reps: 2, sets: 2, recoverTime: 30 },
   },
   {
@@ -235,7 +237,7 @@ export const EXERCISES: Exercise[] = [
     targetMuscle: 'Posterior deltoid & rotator cuff',
     description: 'Pull one straight arm across your chest with the opposite hand. Feel the stretch in the back of the shoulder.',
     coachTip: 'Posterior shoulder tightness is very common in climbers from all the pulling movements. This counteracts it. Do after every climbing session.',
-    imageSource: IMAGES.shoulder_cross,
+    imageSource: IMAGES.flex_yoga_stretch,
     workout: { hangTime: 30, restTime: 10, reps: 3, sets: 2, recoverTime: 30 },
   },
   {
@@ -246,7 +248,7 @@ export const EXERCISES: Exercise[] = [
     targetMuscle: 'Pectorals & anterior deltoid',
     description: 'Clasp hands behind your back, squeeze shoulder blades together, lift arms slightly. Open the chest forward. Hold at peak expansion.',
     coachTip: 'Climbers develop tight, hunched pectorals from constant pulling. This stretch is the direct antidote. Do it morning and evening. Your posture and shoulder health will thank you.',
-    imageSource: IMAGES.chest_open,
+    imageSource: IMAGES.flex_yoga_balance,
     workout: { hangTime: 30, restTime: 10, reps: 3, sets: 2, recoverTime: 30 },
   },
   {
@@ -257,7 +259,7 @@ export const EXERCISES: Exercise[] = [
     targetMuscle: 'Latissimus dorsi & obliques',
     description: 'Arms overhead, clasp hands, lean to one side. Keep hips stable. Feel the long stretch down your side from wrist to hip.',
     coachTip: 'The lats are your biggest pulling muscle — stretching them improves pull-up range and shoulder health. Lean slowly and breathe into the stretch on the elongated side.',
-    imageSource: IMAGES.lat_stretch,
+    imageSource: IMAGES.flex_yoga_balance,
     workout: { hangTime: 40, restTime: 15, reps: 3, sets: 2, recoverTime: 30 },
   },
   {
@@ -268,7 +270,7 @@ export const EXERCISES: Exercise[] = [
     targetMuscle: 'Piriformis, glutes & hip capsule',
     description: 'Seated figure-4: cross one ankle over the opposite knee. Sit tall, lean forward slightly. Press gently on the crossed knee to deepen the stretch.',
     coachTip: 'This is the #1 stretch for smearing, stemming, and high footwork in chimneys. Tight hips force you onto bad body positions. Progress slowly — piriformis can spasm if pushed too hard.',
-    imageSource: IMAGES.hip_rotation,
+    imageSource: IMAGES.flex_yoga_stretch,
     workout: { hangTime: 45, restTime: 15, reps: 2, sets: 2, recoverTime: 30 },
   },
   {
@@ -279,7 +281,7 @@ export const EXERCISES: Exercise[] = [
     targetMuscle: 'Gastrocnemius, soleus & Achilles',
     description: 'Stand with toes on a step or doorstep edge, heel hanging below. Lower your heel slowly. Can also be done with a straight knee (gastrocnemius) or bent knee (soleus).',
     coachTip: 'Ankle flexibility is crucial for smearing and edging on steep ground. Tight calves limit your foot placements. Combine with bent-knee version (30s each) to get both calf muscles.',
-    imageSource: IMAGES.calf_stretch,
+    imageSource: IMAGES.flex_yoga_cobra,
     workout: { hangTime: 30, restTime: 15, reps: 3, sets: 2, recoverTime: 30 },
   },
   {
@@ -290,8 +292,65 @@ export const EXERCISES: Exercise[] = [
     targetMuscle: 'Thoracic spine & intercostals',
     description: 'Seated cross-legged, twist your torso and look over one shoulder. Use your opposite arm pressed against your knee to deepen the rotation.',
     coachTip: 'A mobile thoracic spine lets you twist into rest positions, reach holds from better angles, and prevents lower back pain. Most climbers have stiff T-spines from hunched posture.',
-    imageSource: IMAGES.thoracic_rotation,
+    imageSource: IMAGES.flex_yoga_stretch,
     workout: { hangTime: 30, restTime: 10, reps: 3, sets: 2, recoverTime: 30 },
+  },
+
+  // ── SYSTEMBOARD ENDURANCE ─────────────────────────────────────────────────
+  {
+    id: 'end-arc',
+    name: 'ARC Training',
+    type: 'endurance',
+    difficulty: 'easy',
+    targetMuscle: 'Aerobic forearm base & capillarity',
+    description: 'Aerobic Restoration & Capillarity. Climb or traverse at a comfortable low intensity (50-60% max) without stopping. Should feel sustainable — you could hold a conversation.',
+    coachTip: 'ARC is not about difficulty — it\'s about time on the wall. If you get pumped, you\'re going too hard. Drop the grade until you can keep moving the full interval. Do this after hard sessions to flush lactic acid.',
+    imageSource: IMAGES.end_arc,
+    workout: { hangTime: 120, restTime: 60, reps: 3, sets: 2, recoverTime: 120 },
+  },
+  {
+    id: 'end-4x4',
+    name: '4×4 Circuits',
+    type: 'endurance',
+    difficulty: 'medium',
+    targetMuscle: 'Power endurance & lactic tolerance',
+    description: 'Choose 4 boulder problems slightly below your max. Climb them back-to-back without rest, then rest 4 minutes. Repeat 4 times. The goal is to maintain quality through fatigue.',
+    coachTip: 'The last circuit should feel just as controlled as the first — if you\'re flailing by circuit 3, your problems are too hard. The point is sustained output, not survival. Reduce grade before reducing quality.',
+    imageSource: IMAGES.end_4x4,
+    workout: { hangTime: 45, restTime: 15, reps: 4, sets: 4, recoverTime: 240 },
+  },
+  {
+    id: 'end-threshold',
+    name: 'Threshold Laps',
+    type: 'endurance',
+    difficulty: 'medium',
+    targetMuscle: 'Power endurance at 80-90% effort',
+    description: 'Pick a sequence at 80-90% of your max effort. Climb it, rest 1:1, repeat. You should feel close to failure by the last rep of each set — but still maintain technique.',
+    coachTip: 'This is the sweet spot between strength and endurance. You\'re pushing the threshold where lactic acid builds but doesn\'t overwhelm. Keep a training journal: note the sequence and grade so you can track progression over weeks.',
+    imageSource: IMAGES.end_threshold,
+    workout: { hangTime: 30, restTime: 30, reps: 6, sets: 3, recoverTime: 300 },
+  },
+  {
+    id: 'end-board-repeaters',
+    name: 'Board Repeaters',
+    type: 'endurance',
+    difficulty: 'medium',
+    targetMuscle: 'Strength-endurance on specific hold types',
+    description: 'Select a short 4-6 move sequence on the system board. Perform the sequence, rest briefly, repeat. Focus on a specific hold type (crimps, slopers, pinches) to address weaknesses.',
+    coachTip: 'System boards let you isolate one hold type for the whole circuit — something a random wall can\'t do. Use this to target your specific weakness. If you fall off slopers on routes, do all sloper repeaters.',
+    imageSource: IMAGES.end_repeaters,
+    workout: { hangTime: 20, restTime: 40, reps: 8, sets: 4, recoverTime: 180 },
+  },
+  {
+    id: 'end-power-circuits',
+    name: 'Power Endurance Circuits',
+    type: 'endurance',
+    difficulty: 'hard',
+    targetMuscle: 'High-intensity endurance & mental toughness',
+    description: 'String together 8-12 powerful moves near your limit without stopping. Rest fully (3-5 min) between circuits. Unlike 4×4s, each individual move is much harder — this trains staying powerful when pumped.',
+    coachTip: 'This is the most sport-climbing-specific training you can do on a system board. Simulate the crux of a route: series of hard moves, then a slightly easier finish. Mental toughness is trained here — don\'t give up on a move before your body actually fails.',
+    imageSource: IMAGES.end_power,
+    workout: { hangTime: 60, restTime: 120, reps: 5, sets: 3, recoverTime: 360 },
   },
 ];
 
