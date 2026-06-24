@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "ClimbingTimer",
+    "name": "Climbing Trainer",
     "slug": "climbing-timer",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -12,6 +12,17 @@
       "resizeMode": "contain",
       "backgroundColor": "#1a1a1a"
     },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#4ecdc4",
+          "defaultChannel": "training-reminders"
+        }
+      ],
+      "expo-localization"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.climbingtimer.app",
@@ -25,7 +36,14 @@
       },
       "googleServicesFile": "./google-services.json",
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.READ_CALENDAR",
+        "android.permission.WRITE_CALENDAR"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
