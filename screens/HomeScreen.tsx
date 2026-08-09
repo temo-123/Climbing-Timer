@@ -10,7 +10,8 @@ import TodayModal from '../components/TodayModal';
 import ShopBanner from '../components/ShopBanner';
 import { RootStackParamList } from '../types/navigation';
 import { TrainingPlan, HistoryEntry, PlanSession } from '../types/models';
-import { PRESET_PLANS, localizedPlan } from '../data/presetPlans';
+import { fetchPlanById } from '../utils/api';
+import { localizedPlan } from '../data/constants';
 import { DAY_KEYS } from '../utils/i18n';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
@@ -56,8 +57,8 @@ export default function HomeScreen() {
       const plans: TrainingPlan[] = plansRaw ? JSON.parse(plansRaw) : [];
       const found = plans.find(p => p.isActive);
       if (found) {
-        const preset = found.isPreset ? PRESET_PLANS.find(p => p.id === found.id) : null;
-        const merged = preset ? { ...preset, ...found } : found;
+        const remote = found.isPreset ? await fetchPlanById(found.id).catch(() => null) : null;
+        const merged = remote ? { ...remote, ...found } : found;
         setActivePlan(merged);
         setTodaySession(merged.sessions.find(s => s.dayIndex === getTodayDayIndex()) || null);
       } else {
@@ -149,16 +150,6 @@ export default function HomeScreen() {
           </TouchableOpacity>
         )}
 
-        {/* AI Coach feature card */}
-        <TouchableOpacity style={styles.aiCard} onPress={() => navigation.navigate('AITraining')} activeOpacity={0.85}>
-          <View style={styles.aiCardLeft}>
-            <Text style={styles.aiCardBadge}>{t('home.ai_powered')}</Text>
-            <Text style={styles.aiCardTitle}>{t('home.ai_training')}</Text>
-            <Text style={styles.aiCardSub}>{t('home.ai_training_sub')}</Text>
-          </View>
-          <Text style={styles.aiCardEmoji}>🤖</Text>
-        </TouchableOpacity>
-
         {/* Primary grid */}
         <Text style={styles.sectionLabel}>{t('home.quick_access')}</Text>
         <View style={styles.grid}>
@@ -238,15 +229,6 @@ const styles = StyleSheet.create({
   noPlanCtaText: { color: '#1a1a1a', fontSize: 15, fontWeight: '800' },
   sectionLabel: { color: '#555', fontSize: 11, fontWeight: '700', letterSpacing: 1.5, marginBottom: 12 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 12 },
-  aiCard: {
-    backgroundColor: '#162535', borderRadius: 16, padding: 18, marginBottom: 24,
-    flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#4ecdc444',
-  },
-  aiCardLeft: { flex: 1 },
-  aiCardBadge: { color: '#4ecdc4', fontSize: 9, fontWeight: '800', letterSpacing: 1.5, marginBottom: 4 },
-  aiCardTitle: { color: '#fff', fontSize: 18, fontWeight: '800', marginBottom: 3 },
-  aiCardSub: { color: '#6a9ab0', fontSize: 12 },
-  aiCardEmoji: { fontSize: 40, marginLeft: 10 },
   gridCard: { backgroundColor: '#2d2d2d', borderRadius: 16, padding: 18, width: '47%', minHeight: 110, justifyContent: 'space-between' },
   gridEmoji: { fontSize: 30, marginBottom: 8 },
   gridLabel: { color: '#fff', fontSize: 15, fontWeight: '700' },

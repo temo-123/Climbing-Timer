@@ -16,7 +16,7 @@ import PlanDetailScreen from './screens/PlanDetailScreen';
 import AnalyticsScreen from './screens/AnalyticsScreen';
 import CustomTrainingScreen from './screens/CustomTrainingScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
-import AITrainingScreen from './screens/AITrainingScreen';
+import SettingsScreen from './screens/SettingsScreen';
 
 import { RootStackParamList } from './types/navigation';
 import { initNotifications } from './utils/notifications';
@@ -57,7 +57,7 @@ export default function App() {
           <Stack.Screen name="Analytics" component={AnalyticsScreen} />
           <Stack.Screen name="CustomTraining" component={CustomTrainingScreen} />
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-          <Stack.Screen name="AITraining" component={AITrainingScreen} />
+          <Stack.Screen name="Settings" component={SettingsScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

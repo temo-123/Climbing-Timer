@@ -7,7 +7,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { RootStackParamList } from '../types/navigation';
 import { HistoryEntry } from '../types/models';
-import { TYPE_EMOJIS } from '../data/presetPlans';
+import { TYPE_EMOJIS } from '../data/constants';
 import Footer from '../components/Footer';
 import { globalStyles } from '../styles/globalStyles';
 

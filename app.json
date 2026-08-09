@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Climbing Trainer",
-    "slug": "climbing-timer",
+    "slug": "climbing-trainer",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -25,11 +25,11 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.climbingtimer.app",
+      "bundleIdentifier": "com.climbingtrainer.app",
       "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
-      "package": "com.climbingtimer.app",
+      "package": "com.climbingtrainer.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1a1a1a"

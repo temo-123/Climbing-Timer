@@ -14,9 +14,9 @@ import { setLanguage, AppLanguage } from '../utils/i18n';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Onboarding'>;
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 4;
 
-const STEP_LABELS = ['Language', 'About You', 'Equipment', 'Climbing', 'AI Coach'];
+const STEP_LABELS = ['Language', 'About You', 'Equipment', 'Climbing'];
 
 const SEX_OPTIONS: { id: Sex; emoji: string; labelKey: string }[] = [
   { id: 'male',   emoji: '♂',  labelKey: 'sex_male' },
@@ -85,7 +85,6 @@ export default function OnboardingScreen() {
   const [experienceYears, setExperienceYears] = useState<number>(-1);
   const [climbingGrade,   setClimbingGrade]   = useState('');
 
-  const [apiKey, setApiKey] = useState('');
   const [saving, setSaving] = useState(false);
 
   const hasWall = equipment.includes('climbing_wall') || equipment.includes('system_wall');
@@ -124,7 +123,6 @@ export default function OnboardingScreen() {
       wallDegree: hasWall ? wallDegree : undefined,
       experienceYears,
       climbingGrade: climbingGrade.trim() || undefined,
-      anthropicApiKey: apiKey.trim() || undefined,
     };
     try {
       await AsyncStorage.setItem('userProfile', JSON.stringify(profile));
@@ -333,48 +331,7 @@ export default function OnboardingScreen() {
     </ScrollView>
   );
 
-  // ── Step 4: AI Setup ─────────────────────────────────────────────────────────
-  const renderStep4 = () => (
-    <ScrollView contentContainerStyle={styles.stepContent} keyboardShouldPersistTaps="handled">
-      <Text style={styles.stepEmoji}>🤖</Text>
-      <Text style={styles.stepTitle}>{t('onboarding.step4_title')}</Text>
-      <Text style={styles.stepSub}>{t('onboarding.step4_sub')}</Text>
-
-      <View style={styles.aiBenefitsList}>
-        {(['ai_benefit_1', 'ai_benefit_2', 'ai_benefit_3', 'ai_benefit_4'] as const).map(key => (
-          <View key={key} style={styles.aiBenefitRow}>
-            <Text style={styles.aiBenefitText}>{t(`onboarding.${key}` as any)}</Text>
-          </View>
-        ))}
-      </View>
-
-      <View style={styles.apiCard}>
-        <Text style={styles.apiCardTitle}>{t('onboarding.api_what_title')}</Text>
-        <Text style={styles.apiCardText}>{t('onboarding.api_what_text')}</Text>
-      </View>
-
-      <Text style={styles.questionLabel}>
-        {t('onboarding.api_key_label')}{'  '}
-        <Text style={styles.optional}>{t('onboarding.api_key_optional')}</Text>
-      </Text>
-      <TextInput
-        style={[styles.gradeInput, styles.apiInput]}
-        value={apiKey}
-        onChangeText={setApiKey}
-        placeholder={t('onboarding.api_key_placeholder')}
-        placeholderTextColor="#444"
-        autoCapitalize="none"
-        autoCorrect={false}
-      />
-      <Text style={styles.hint}>{t('onboarding.api_key_hint')}</Text>
-
-      <TouchableOpacity style={styles.skipBtn} onPress={finish}>
-        <Text style={styles.skipText}>{t('onboarding.skip')}</Text>
-      </TouchableOpacity>
-    </ScrollView>
-  );
-
-  const steps = [renderStep0, renderStep1, renderStep2, renderStep3, renderStep4];
+  const steps = [renderStep0, renderStep1, renderStep2, renderStep3];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -507,20 +464,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#1e1e1e', color: '#fff', borderRadius: 14,
     padding: 16, fontSize: 16, borderWidth: 1.5, borderColor: '#2d2d2d', marginBottom: 8,
   },
-
-  // Step 4
-  aiBenefitsList: { backgroundColor: '#1a2a1a', borderRadius: 16, padding: 16, marginBottom: 20, gap: 10 },
-  aiBenefitRow: { flexDirection: 'row', alignItems: 'center' },
-  aiBenefitText: { color: '#ccc', fontSize: 14 },
-  apiCard: {
-    backgroundColor: '#1e2535', borderRadius: 14, padding: 16, marginBottom: 20,
-    borderLeftWidth: 3, borderLeftColor: '#4ecdc4',
-  },
-  apiCardTitle: { color: '#fff', fontSize: 14, fontWeight: '700', marginBottom: 6 },
-  apiCardText: { color: '#888', fontSize: 13, lineHeight: 20 },
-  apiInput: { fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 13 },
-  skipBtn: { alignItems: 'center', paddingVertical: 16 },
-  skipText: { color: '#444', fontSize: 13, textDecorationLine: 'underline' },
 
   // Shared
   checkBadge: {

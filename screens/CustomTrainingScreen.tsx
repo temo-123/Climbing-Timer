@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, Modal } from 'react-native';
+import React, { useState, useCallback, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, Modal, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -7,8 +7,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import { RootStackParamList } from '../types/navigation';
 import { Workout, TrainingType, UserProfile, Equipment } from '../types/models';
-import { Exercise, EXERCISES_BY_TYPE, DIFFICULTY_COLORS, localizedExercise, getDifficultyLabel } from '../data/exercises';
-import { TYPE_EMOJIS } from '../data/presetPlans';
+import { fetchTrainings } from '../utils/api';
+import { TYPE_EMOJIS, DIFFICULTY_COLORS, getDifficultyLabel, localizedWorkout } from '../data/constants';
 import { globalStyles } from '../styles/globalStyles';
 import Footer from '../components/Footer';
 
@@ -32,14 +32,13 @@ export default function CustomTrainingScreen() {
   const navigation = useNavigation<NavigationProp>();
   const [userEquipment, setUserEquipment] = useState<Equipment[]>([]);
   const [activeTab, setActiveTab] = useState<TrainingType>('fingerboard');
-  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
-  const [imageUris, setImageUris] = useState<Record<string, string>>({});
+  const [selectedExercise, setSelectedExercise] = useState<Workout | null>(null);
+  const [exercises, setExercises] = useState<Workout[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useFocusEffect(useCallback(() => {
-    Promise.all([
-      AsyncStorage.getItem('userProfile'),
-      AsyncStorage.getItem('exerciseImageUris'),
-    ]).then(([profileRaw, urisRaw]) => {
+    AsyncStorage.getItem('userProfile').then(profileRaw => {
       if (profileRaw) {
         const profile: UserProfile = JSON.parse(profileRaw);
         const equip = profile.equipment || [];
@@ -49,7 +48,6 @@ export default function CustomTrainingScreen() {
           setActiveTab(tabs[0].type);
         }
       }
-      if (urisRaw) setImageUris(JSON.parse(urisRaw));
     }).catch(() => {});
   }, []));
 
@@ -60,8 +58,20 @@ export default function CustomTrainingScreen() {
   const tabs = getAvailableTabs(userEquipment);
   const effectiveTab = tabs.find(t => t.type === activeTab) ? activeTab : (tabs[0]?.type ?? 'flexibility');
 
-  const exercises = EXERCISES_BY_TYPE(effectiveTab);
-  const lEx = (ex: Exercise) => localizedExercise(ex, lang);
+  const loadExercises = useCallback(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(false);
+    fetchTrainings(effectiveTab)
+      .then(data => { if (!cancelled) setExercises(data); })
+      .catch(() => { if (!cancelled) { setExercises([]); setError(true); } })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [effectiveTab]);
+
+  useEffect(() => loadExercises(), [loadExercises]);
+
+  const lEx = (ex: Workout) => localizedWorkout(ex, lang);
 
   const getTypeDesc = (type: TrainingType) => t(`custom.type_desc_${type}`);
 
@@ -72,25 +82,12 @@ export default function CustomTrainingScreen() {
     return t('custom.hang_lbl');
   };
 
-  const startExercise = (ex: Exercise) => {
+  const startExercise = (ex: Workout) => {
     setSelectedExercise(null);
-    const loc = lEx(ex);
-    const workout: Workout = {
-      id: `custom-${ex.id}-${Date.now()}`,
-      name: loc.name,
-      type: ex.type,
-      description: loc.description,
-      hangTime: ex.workout.hangTime,
-      restTime: ex.workout.restTime,
-      reps: ex.workout.reps,
-      sets: ex.workout.sets,
-      recoverTime: ex.workout.recoverTime,
-      coachTip: loc.coachTip,
-    };
-    navigation.navigate('Timer', { workout });
+    navigation.navigate('Timer', { workout: ex });
   };
 
-  const diffColor = (ex: Exercise) => DIFFICULTY_COLORS[ex.difficulty];
+  const diffColor = (ex: Workout) => DIFFICULTY_COLORS[ex.difficulty ?? 'medium'];
 
   return (
     <SafeAreaView style={globalStyles.container}>
@@ -122,8 +119,29 @@ export default function CustomTrainingScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {exercises.map(ex => {
+        {loading ? (
+          <View style={styles.centerState}>
+            <ActivityIndicator size="large" color="#4ecdc4" />
+            <Text style={styles.centerStateText}>{t('common.loading')}</Text>
+          </View>
+        ) : error ? (
+          <View style={styles.centerState}>
+            <Text style={styles.centerStateEmoji}>📡</Text>
+            <Text style={styles.centerStateTitle}>{t('custom.error_title')}</Text>
+            <Text style={styles.centerStateText}>{t('custom.error_text')}</Text>
+            <TouchableOpacity style={styles.retryBtn} onPress={loadExercises}>
+              <Text style={styles.retryBtnText}>{t('custom.retry')}</Text>
+            </TouchableOpacity>
+          </View>
+        ) : exercises.length === 0 ? (
+          <View style={styles.centerState}>
+            <Text style={styles.centerStateEmoji}>🗂️</Text>
+            <Text style={styles.centerStateTitle}>{t('custom.empty_title')}</Text>
+            <Text style={styles.centerStateText}>{t('custom.empty_text')}</Text>
+          </View>
+        ) : exercises.map(ex => {
           const loc = lEx(ex);
+          const showImage = ex.imageUrl && !(ex.type === 'fingerboard' && !userEquipment.includes('fingerboard'));
           return (
           <TouchableOpacity
             key={ex.id}
@@ -132,41 +150,39 @@ export default function CustomTrainingScreen() {
             activeOpacity={0.85}
           >
             {ex.type === 'fingerboard' && !userEquipment.includes('fingerboard')
-              ? <Text style={styles.cardDescOnly}>{lEx(ex).description}</Text>
-              : <Image
-                  source={imageUris[ex.id] ? { uri: imageUris[ex.id] } : ex.imageSource}
-                  style={styles.cardImage}
-                  resizeMode="cover"
-                />
+              ? <Text style={styles.cardDescOnly}>{loc.description}</Text>
+              : showImage
+                ? <Image source={{ uri: ex.imageUrl }} style={styles.cardImage} resizeMode="cover" />
+                : <View style={[styles.cardImage, styles.cardImagePlaceholder]}><Text style={{ fontSize: 40 }}>{TYPE_EMOJIS[ex.type]}</Text></View>
             }
             <View style={styles.cardBody}>
               <View style={styles.cardTitleRow}>
                 <Text style={styles.cardName}>{loc.name}</Text>
                 <View style={[styles.diffBadge, { backgroundColor: diffColor(ex) + '25', borderColor: diffColor(ex) }]}>
-                  <Text style={[styles.diffText, { color: diffColor(ex) }]}>{getDifficultyLabel(ex.difficulty, lang)}</Text>
+                  <Text style={[styles.diffText, { color: diffColor(ex) }]}>{getDifficultyLabel(ex.difficulty ?? 'medium', lang)}</Text>
                 </View>
               </View>
 
-              <Text style={styles.cardTarget}>🎯 {loc.targetMuscle}</Text>
+              {loc.targetMuscle !== '' && <Text style={styles.cardTarget}>🎯 {loc.targetMuscle}</Text>}
 
               <View style={styles.timerRow}>
                 <View style={styles.timerItem}>
-                  <Text style={styles.timerVal}>{ex.workout.hangTime}s</Text>
+                  <Text style={styles.timerVal}>{ex.hangTime}s</Text>
                   <Text style={styles.timerLbl}>{getWorkLabel(ex.type)}</Text>
                 </View>
                 <View style={styles.timerDivider} />
                 <View style={styles.timerItem}>
-                  <Text style={styles.timerVal}>{ex.workout.reps}</Text>
+                  <Text style={styles.timerVal}>{ex.reps}</Text>
                   <Text style={styles.timerLbl}>{t('custom.reps_lbl')}</Text>
                 </View>
                 <View style={styles.timerDivider} />
                 <View style={styles.timerItem}>
-                  <Text style={styles.timerVal}>{ex.workout.sets}</Text>
+                  <Text style={styles.timerVal}>{ex.sets}</Text>
                   <Text style={styles.timerLbl}>{t('custom.sets_lbl')}</Text>
                 </View>
                 <View style={styles.timerDivider} />
                 <View style={styles.timerItem}>
-                  <Text style={styles.timerVal}>{formatSec(ex.workout.recoverTime)}</Text>
+                  <Text style={styles.timerVal}>{formatSec(ex.recoverTime)}</Text>
                   <Text style={styles.timerLbl}>{t('custom.recover_lbl')}</Text>
                 </View>
               </View>
@@ -195,9 +211,9 @@ export default function CustomTrainingScreen() {
           <View style={styles.modalOverlay}>
             <View style={styles.modalSheet}>
               <ScrollView showsVerticalScrollIndicator={false}>
-                {!(selectedExercise.type === 'fingerboard' && !userEquipment.includes('fingerboard')) && (
+                {!!selectedExercise.imageUrl && !(selectedExercise.type === 'fingerboard' && !userEquipment.includes('fingerboard')) && (
                   <Image
-                    source={imageUris[selectedExercise.id] ? { uri: imageUris[selectedExercise.id] } : selectedExercise.imageSource}
+                    source={{ uri: selectedExercise.imageUrl }}
                     style={styles.modalImage}
                     resizeMode="contain"
                   />
@@ -206,21 +222,21 @@ export default function CustomTrainingScreen() {
                   <View style={styles.cardTitleRow}>
                     <Text style={styles.modalName}>{selLoc.name}</Text>
                     <View style={[styles.diffBadge, { backgroundColor: diffColor(selectedExercise) + '25', borderColor: diffColor(selectedExercise) }]}>
-                      <Text style={[styles.diffText, { color: diffColor(selectedExercise) }]}>{getDifficultyLabel(selectedExercise.difficulty, lang)}</Text>
+                      <Text style={[styles.diffText, { color: diffColor(selectedExercise) }]}>{getDifficultyLabel(selectedExercise.difficulty ?? 'medium', lang)}</Text>
                     </View>
                   </View>
 
-                  <Text style={styles.modalTarget}>🎯 {selLoc.targetMuscle}</Text>
+                  {selLoc.targetMuscle !== '' && <Text style={styles.modalTarget}>🎯 {selLoc.targetMuscle}</Text>}
                   <Text style={styles.modalDesc}>{selLoc.description}</Text>
 
                   <Text style={styles.sectionLabel}>{t('custom.timer_settings')}</Text>
                   <View style={styles.modalTimerGrid}>
                     {[
-                      { label: getWorkLabel(selectedExercise.type), val: `${selectedExercise.workout.hangTime}s` },
-                      { label: t('custom.rest_between_reps'), val: `${selectedExercise.workout.restTime}s` },
-                      { label: t('custom.reps_lbl'), val: String(selectedExercise.workout.reps) },
-                      { label: t('custom.sets_lbl'), val: String(selectedExercise.workout.sets) },
-                      { label: t('custom.recover_between_sets'), val: formatSec(selectedExercise.workout.recoverTime) },
+                      { label: getWorkLabel(selectedExercise.type), val: `${selectedExercise.hangTime}s` },
+                      { label: t('custom.rest_between_reps'), val: `${selectedExercise.restTime}s` },
+                      { label: t('custom.reps_lbl'), val: String(selectedExercise.reps) },
+                      { label: t('custom.sets_lbl'), val: String(selectedExercise.sets) },
+                      { label: t('custom.recover_between_sets'), val: formatSec(selectedExercise.recoverTime) },
                     ].map(item => (
                       <View key={item.label} style={styles.timerSettingRow}>
                         <Text style={styles.timerSettingLabel}>{item.label}</Text>
@@ -265,8 +281,15 @@ const styles = StyleSheet.create({
   typeDescText: { color: '#aaa', fontSize: 13, flex: 1, marginRight: 10 },
   typeDescCount: { color: '#4ecdc4', fontSize: 13, fontWeight: '700' },
   scroll: { padding: 16, paddingBottom: 20 },
+  centerState: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 20 },
+  centerStateEmoji: { fontSize: 48, marginBottom: 14 },
+  centerStateTitle: { color: '#fff', fontSize: 18, fontWeight: '700', marginBottom: 8, textAlign: 'center' },
+  centerStateText: { color: '#aaa', fontSize: 14, textAlign: 'center', lineHeight: 20, marginTop: 10 },
+  retryBtn: { backgroundColor: '#4ecdc4', borderRadius: 10, paddingHorizontal: 24, paddingVertical: 12, marginTop: 18 },
+  retryBtnText: { color: '#1a1a1a', fontSize: 14, fontWeight: '700' },
   card: { backgroundColor: '#2d2d2d', borderRadius: 16, marginBottom: 16, overflow: 'hidden' },
   cardImage: { width: '100%', height: 180 },
+  cardImagePlaceholder: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e2530' },
   cardBody: { padding: 14 },
   cardTitleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 6 },
   cardName: { color: '#fff', fontSize: 17, fontWeight: '700', flex: 1, marginRight: 8 },

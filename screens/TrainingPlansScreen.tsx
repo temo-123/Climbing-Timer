@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -7,7 +7,8 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { RootStackParamList } from '../types/navigation';
 import { TrainingPlan } from '../types/models';
-import { PRESET_PLANS, LEVEL_COLORS, localizedPlan, getLevelLabel } from '../data/presetPlans';
+import { fetchPlans } from '../utils/api';
+import { LEVEL_COLORS, localizedPlan, getLevelLabel } from '../data/constants';
 import { globalStyles } from '../styles/globalStyles';
 import Footer from '../components/Footer';
 import { DAY_KEYS } from '../utils/i18n';
@@ -19,15 +20,31 @@ export default function TrainingPlansScreen() {
   const lang = i18n.language;
   const navigation = useNavigation<NavigationProp>();
   const [activePlanId, setActivePlanId] = useState<string | null>(null);
+  const [plans, setPlans] = useState<TrainingPlan[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-  useFocusEffect(useCallback(() => { loadActivePlan(); }, []));
+  useFocusEffect(useCallback(() => { loadActivePlan(); loadPlans(); }, []));
 
   const loadActivePlan = async () => {
     try {
       const raw = await AsyncStorage.getItem('plans');
-      const plans: TrainingPlan[] = raw ? JSON.parse(raw) : [];
-      setActivePlanId(plans.find(p => p.isActive)?.id || null);
+      const stored: TrainingPlan[] = raw ? JSON.parse(raw) : [];
+      setActivePlanId(stored.find(p => p.isActive)?.id || null);
     } catch { /* ignore */ }
+  };
+
+  const loadPlans = async () => {
+    setLoading(true);
+    setError(false);
+    try {
+      setPlans(await fetchPlans());
+    } catch {
+      setPlans([]);
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const COACH_TIP_KEYS = [
@@ -57,7 +74,27 @@ export default function TrainingPlansScreen() {
         <Text style={styles.sectionLabel}>{t('plans.choose_level')}</Text>
         <Text style={styles.sectionDesc}>{t('plans.section_desc')}</Text>
 
-        {PRESET_PLANS.map(plan => {
+        {loading ? (
+          <View style={styles.centerState}>
+            <ActivityIndicator size="large" color="#4ecdc4" />
+            <Text style={styles.centerStateText}>{t('common.loading')}</Text>
+          </View>
+        ) : error ? (
+          <View style={styles.centerState}>
+            <Text style={styles.centerStateEmoji}>📡</Text>
+            <Text style={styles.centerStateTitle}>{t('plans.error_load_title')}</Text>
+            <Text style={styles.centerStateText}>{t('plans.error_load_text')}</Text>
+            <TouchableOpacity style={styles.retryBtn} onPress={loadPlans}>
+              <Text style={styles.retryBtnText}>{t('custom.retry')}</Text>
+            </TouchableOpacity>
+          </View>
+        ) : plans.length === 0 ? (
+          <View style={styles.centerState}>
+            <Text style={styles.centerStateEmoji}>🗂️</Text>
+            <Text style={styles.centerStateTitle}>{t('plans.empty_title')}</Text>
+            <Text style={styles.centerStateText}>{t('plans.empty_text')}</Text>
+          </View>
+        ) : plans.map(plan => {
           const isActive = activePlanId === plan.id;
           const levelColor = LEVEL_COLORS[plan.level] || '#4ecdc4';
           const lp = localizedPlan(plan, lang);
@@ -131,6 +168,12 @@ const styles = StyleSheet.create({
   tipText: { color: '#ccc', fontSize: 14, lineHeight: 20, flex: 1 },
   sectionLabel: { color: '#666', fontSize: 11, fontWeight: '700', letterSpacing: 1.5, marginBottom: 6 },
   sectionDesc: { color: '#888', fontSize: 13, marginBottom: 18, lineHeight: 18 },
+  centerState: { alignItems: 'center', paddingTop: 40, paddingHorizontal: 10 },
+  centerStateEmoji: { fontSize: 48, marginBottom: 14 },
+  centerStateTitle: { color: '#fff', fontSize: 18, fontWeight: '700', marginBottom: 8, textAlign: 'center' },
+  centerStateText: { color: '#aaa', fontSize: 14, textAlign: 'center', lineHeight: 20, marginTop: 10 },
+  retryBtn: { backgroundColor: '#4ecdc4', borderRadius: 10, paddingHorizontal: 24, paddingVertical: 12, marginTop: 18 },
+  retryBtnText: { color: '#1a1a1a', fontSize: 14, fontWeight: '700' },
   planCard: { backgroundColor: '#2d2d2d', borderRadius: 16, padding: 18, marginBottom: 16, borderWidth: 1, borderColor: 'transparent' },
   planCardActive: { borderColor: '#4ecdc4' },
   activeBanner: { backgroundColor: '#4ecdc4', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2, alignSelf: 'flex-start', marginBottom: 10 },

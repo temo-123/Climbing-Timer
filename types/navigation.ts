@@ -11,5 +11,5 @@ export type RootStackParamList = {
   Analytics: undefined;
   CustomTraining: undefined;
   Onboarding: undefined;
-  AITraining: undefined;
+  Settings: undefined;
 };

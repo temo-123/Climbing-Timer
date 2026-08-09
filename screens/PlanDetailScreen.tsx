@@ -6,7 +6,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import { RootStackParamList } from '../types/navigation';
 import { TrainingPlan, PlanSession } from '../types/models';
-import { PRESET_PLANS, LEVEL_COLORS, TYPE_EMOJIS, localizedPlan, localizedWorkout, getLevelLabel } from '../data/presetPlans';
+import { fetchPlanById } from '../utils/api';
+import { LEVEL_COLORS, TYPE_EMOJIS, localizedPlan, localizedWorkout, getLevelLabel } from '../data/constants';
 import { DAY_KEYS } from '../utils/i18n';
 import { requestNotificationPermissions, scheduleTrainingNotifications, cancelNotifications } from '../utils/notifications';
 import { requestCalendarPermissions, addPlanToCalendar, removePlanFromCalendar } from '../utils/calendar';
@@ -42,6 +43,7 @@ export default function PlanDetailScreen({ route, navigation }: Props) {
   const lang = i18n.language;
   const { planId } = route.params;
   const [plan, setPlan] = useState<TrainingPlan | null>(null);
+  const [planError, setPlanError] = useState(false);
   const [isActive, setIsActive] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -58,22 +60,24 @@ export default function PlanDetailScreen({ route, navigation }: Props) {
   useEffect(() => { loadPlan(); }, [planId]);
 
   const loadPlan = async () => {
-    const presetPlan = PRESET_PLANS.find(p => p.id === planId) || null;
+    setPlanError(false);
     try {
+      const remotePlan = await fetchPlanById(planId);
       const raw = await AsyncStorage.getItem('plans');
       const plans: TrainingPlan[] = raw ? JSON.parse(raw) : [];
       const stored = plans.find(p => p.id === planId);
+      const merged = stored ? { ...remotePlan, ...stored } : remotePlan;
+      setPlan(merged);
       if (stored) {
-        const merged = presetPlan ? { ...presetPlan, ...stored } : stored;
-        setPlan(merged);
         setIsActive(!!stored.isActive);
         setNotifEnabled(!!stored.notificationsEnabled);
         setActiveNotifTime(stored.notificationTime || '08:00');
         setCalendarEnabled(!!stored.calendarEnabled);
-      } else if (presetPlan) {
-        setPlan(presetPlan);
       }
-    } catch { if (presetPlan) setPlan(presetPlan); }
+    } catch {
+      setPlan(null);
+      setPlanError(true);
+    }
   };
 
   const savePlanToStorage = async (updates: Partial<TrainingPlan>) => {
@@ -218,8 +222,19 @@ export default function PlanDetailScreen({ route, navigation }: Props) {
         <View style={globalStyles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()}><Text style={globalStyles.backText}>{t('common.back')}</Text></TouchableOpacity>
         </View>
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ color: '#aaa' }}>{t('common.loading')}</Text>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 30 }}>
+          {planError ? (
+            <>
+              <Text style={{ fontSize: 48, marginBottom: 14 }}>📡</Text>
+              <Text style={{ color: '#fff', fontSize: 18, fontWeight: '700', marginBottom: 8, textAlign: 'center' }}>{t('plans.error_load_title')}</Text>
+              <Text style={{ color: '#aaa', fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 18 }}>{t('plans.error_load_text')}</Text>
+              <TouchableOpacity style={{ backgroundColor: '#4ecdc4', borderRadius: 10, paddingHorizontal: 24, paddingVertical: 12 }} onPress={loadPlan}>
+                <Text style={{ color: '#1a1a1a', fontSize: 14, fontWeight: '700' }}>{t('custom.retry')}</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <Text style={{ color: '#aaa' }}>{t('common.loading')}</Text>
+          )}
         </View>
       </SafeAreaView>
     );

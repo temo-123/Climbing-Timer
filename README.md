@@ -1,6 +1,6 @@
-# ClimbingTimer
+# Climbing Trainer
 
-A mobile training timer for climbers and boulderers. Build custom hangboard workouts, run timed sessions with automatic phase transitions, and track your history.
+A mobile training app for climbers and boulderers. Build custom hangboard workouts, run timed sessions with automatic phase transitions, and track your history.
 
 **Product by [climbing.ge](https://climbing.ge)** — Georgia's premier climbing community.  
 **Author:** Temo Samsonadze

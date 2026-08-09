@@ -1,7 +1,20 @@
 export type TrainingType = 'fingerboard' | 'campus' | 'flexibility' | 'strength' | 'endurance';
 export type DifficultyLevel = 'beginner' | 'intermediate' | 'expert' | 'maintenance';
+export type Difficulty = 'easy' | 'medium' | 'hard';
 export type Sex = 'male' | 'female' | 'other';
 export type Equipment = 'fingerboard' | 'campus_board' | 'climbing_wall' | 'system_wall' | 'pull_up_bar' | 'weights';
+
+// A single ordered step in a step-by-step training, as returned by the training API.
+export type StepPhase = 'prepare' | 'hang' | 'rest' | 'recover' | 'work' | 'stretch';
+
+export interface TrainingStep {
+  order: number;
+  phase: StepPhase;
+  label?: string;
+  durationSeconds: number;
+  imageUrl?: string;
+  instructions?: string;
+}
 
 export interface UserProfile {
   age: number;
@@ -12,13 +25,13 @@ export interface UserProfile {
   wallDegree?: number;
   experienceYears: number;
   climbingGrade?: string;
-  anthropicApiKey?: string;
 }
 
 export interface WorkoutTranslation {
   name?: string;
   description?: string;
   coachTip?: string;
+  targetMuscle?: string;
 }
 
 export interface PlanTranslation {
@@ -34,6 +47,9 @@ export interface Workout {
   description?: string;
   type: TrainingType;
   level?: DifficultyLevel;
+  difficulty?: Difficulty;
+  targetMuscle?: string;
+  imageUrl?: string;
   hangTime: number;
   restTime: number;
   reps: number;
@@ -41,6 +57,9 @@ export interface Workout {
   recoverTime: number;
   coachTip?: string;
   isPreset?: boolean;
+  // Ordered steps from the training API. When present, TimerScreen walks
+  // these directly instead of computing the sequence from hangTime/restTime/reps/sets.
+  steps?: TrainingStep[];
   translations?: Record<string, WorkoutTranslation>;
 }
 

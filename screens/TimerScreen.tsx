@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Alert, Vibration, Animated } from 'react-native';
 import * as Speech from 'expo-speech';
 import Svg, { Circle } from 'react-native-svg';
@@ -7,14 +7,14 @@ import { StatusBar } from 'expo-status-bar';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { RootStackParamList } from '../types/navigation';
-import { HistoryEntry } from '../types/models';
+import { HistoryEntry, StepPhase } from '../types/models';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { globalStyles } from '../styles/globalStyles';
-import { TYPE_EMOJIS, localizedWorkout } from '../data/presetPlans';
+import { TYPE_EMOJIS, localizedWorkout } from '../data/constants';
 import Footer from '../components/Footer';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Timer'>;
-type Phase = 'prepare' | 'hang' | 'rest' | 'recover';
+type Phase = StepPhase;
 
 export default function TimerScreen({ route, navigation }: Props) {
   const { t, i18n } = useTranslation();
@@ -23,17 +23,26 @@ export default function TimerScreen({ route, navigation }: Props) {
   const workoutType = workout.type || 'fingerboard';
   const workoutName = localizedWorkout(workout, lang).name;
 
+  // Ordered steps from the training API — when present, the timer walks this
+  // list directly instead of computing the sequence from hangTime/restTime/reps/sets.
+  const sortedSteps = useMemo(
+    () => (workout.steps && workout.steps.length > 0 ? [...workout.steps].sort((a, b) => a.order - b.order) : []),
+    [workout.steps]
+  );
+  const stepsMode = sortedSteps.length > 0;
+
   const getPhaseLabel = (phase: Phase, type: string): string => {
     if (phase === 'prepare') return t('timer.get_ready');
-    if (phase === 'hang') {
-      if (type === 'campus') return t('timer.move');
-      if (type === 'flexibility') return t('timer.stretch');
-      if (type === 'strength') return t('timer.work');
-      if (type === 'endurance') return t('timer.traverse');
-      return t('timer.hang');
-    }
     if (phase === 'rest') return t('timer.rest');
-    return t('timer.recover');
+    if (phase === 'recover') return t('timer.recover');
+    if (phase === 'work') return t('timer.work');
+    if (phase === 'stretch') return t('timer.stretch');
+    // phase === 'hang' in legacy (formula-driven) mode reads its label from the workout type
+    if (type === 'campus') return t('timer.move');
+    if (type === 'flexibility') return t('timer.stretch');
+    if (type === 'strength') return t('timer.work');
+    if (type === 'endurance') return t('timer.traverse');
+    return t('timer.hang');
   };
 
   const [timeLeft, setTimeLeft] = useState(12);
@@ -41,6 +50,7 @@ export default function TimerScreen({ route, navigation }: Props) {
   const [isRunning, setIsRunning] = useState(false);
   const [currentRep, setCurrentRep] = useState(1);
   const [currentSet, setCurrentSet] = useState(1);
+  const [currentStepIndex, setCurrentStepIndex] = useState(-1);
   const [currentDuration, setCurrentDuration] = useState(12);
   const [isFinished, setIsFinished] = useState(false);
 
@@ -48,10 +58,12 @@ export default function TimerScreen({ route, navigation }: Props) {
   const phaseRef = useRef<Phase>('prepare');
   const currentRepRef = useRef(1);
   const currentSetRef = useRef(1);
+  const currentStepIndexRef = useRef(-1);
 
   phaseRef.current = phase;
   currentRepRef.current = currentRep;
   currentSetRef.current = currentSet;
+  currentStepIndexRef.current = currentStepIndex;
 
   const reps = workout.reps || 6;
   const sets = workout.sets || 4;
@@ -63,8 +75,8 @@ export default function TimerScreen({ route, navigation }: Props) {
   useEffect(() => {
     if (phase !== prevPhaseRef.current) {
       prevPhaseRef.current = phase;
-      if (phase === 'hang') Vibration.vibrate([0, 150, 80, 150]);
-      else if (phase === 'rest' || phase === 'recover') Vibration.vibrate(250);
+      if (phase === 'hang' || phase === 'work') Vibration.vibrate([0, 150, 80, 150]);
+      else if (phase === 'rest' || phase === 'recover' || phase === 'stretch') Vibration.vibrate(250);
     }
   }, [phase]);
 
@@ -100,7 +112,9 @@ export default function TimerScreen({ route, navigation }: Props) {
   };
 
   const getPhaseColor = (ph: Phase): string => {
-    const colors: Record<Phase, string> = { prepare: '#ffa502', hang: '#ff4757', rest: '#3742fa', recover: '#2ed573' };
+    const colors: Record<Phase, string> = {
+      prepare: '#ffa502', hang: '#ff4757', rest: '#3742fa', recover: '#2ed573', work: '#ff4757', stretch: '#2ed573',
+    };
     return colors[ph] || '#fff';
   };
 
@@ -123,6 +137,15 @@ export default function TimerScreen({ route, navigation }: Props) {
     } catch { /* ignore */ }
   };
 
+  // For step-mode workouts, "reps/sets completed" reads as "steps completed / total steps".
+  const getProgressCounts = useCallback((): { repsDone: number; setsDone: number } => {
+    if (stepsMode) {
+      const doneSteps = Math.max(currentStepIndexRef.current, 0);
+      return { repsDone: doneSteps, setsDone: doneSteps > 0 ? 1 : 0 };
+    }
+    return { repsDone: currentRepRef.current - 1, setsDone: currentSetRef.current - 1 };
+  }, [stepsMode]);
+
   const finishWorkout = useCallback(async () => {
     setIsRunning(false);
     await saveHistory('success', reps, sets);
@@ -133,24 +156,42 @@ export default function TimerScreen({ route, navigation }: Props) {
   const resetWorkout = useCallback(() => {
     setIsRunning(false);
     Speech.stop();
-    if (currentSetRef.current > 1 || currentRepRef.current > 1) {
-      saveHistory('failed', currentRepRef.current - 1, currentSetRef.current - 1);
+    const hadProgress = stepsMode ? currentStepIndexRef.current > 0 : (currentSetRef.current > 1 || currentRepRef.current > 1);
+    if (hadProgress) {
+      const { repsDone, setsDone } = getProgressCounts();
+      saveHistory('failed', repsDone, setsDone);
     }
     setTimeLeft(12); setPhase('prepare'); setCurrentDuration(12);
-    setCurrentRep(1); setCurrentSet(1); setIsFinished(false);
+    setCurrentRep(1); setCurrentSet(1); setCurrentStepIndex(-1); setIsFinished(false);
     if (intervalRef.current) clearInterval(intervalRef.current);
-  }, [workout]);
+  }, [workout, stepsMode, getProgressCounts]);
 
   const stopWorkout = useCallback(() => {
     setIsRunning(false);
     Speech.stop();
-    saveHistory('failed', currentRepRef.current - 1, currentSetRef.current - 1);
+    const { repsDone, setsDone } = getProgressCounts();
+    saveHistory('failed', repsDone, setsDone);
     Alert.alert(t('timer.stopped_title'), t('timer.stopped_msg'));
     navigation.navigate('Home' as any);
-  }, [workout, navigation, t]);
+  }, [workout, navigation, t, getProgressCounts]);
+
+  const advanceToStep = useCallback((idx: number) => {
+    const step = sortedSteps[idx];
+    setPhase(step.phase); phaseRef.current = step.phase;
+    setCurrentStepIndex(idx); currentStepIndexRef.current = idx;
+    setCurrentDuration(step.durationSeconds); setTimeLeft(step.durationSeconds);
+  }, [sortedSteps]);
 
   const skipPhase = useCallback(() => {
     const currPhase = phaseRef.current;
+
+    if (stepsMode) {
+      const nextIdx = currPhase === 'prepare' ? 0 : currentStepIndexRef.current + 1;
+      if (nextIdx < sortedSteps.length) advanceToStep(nextIdx);
+      else finishWorkout();
+      return;
+    }
+
     const currRep = currentRepRef.current;
     const currSet = currentSetRef.current;
     if (currPhase === 'prepare') {
@@ -171,7 +212,7 @@ export default function TimerScreen({ route, navigation }: Props) {
       currentSetRef.current = currSet + 1; setCurrentSet(currSet + 1);
       setCurrentRep(1); setCurrentDuration(hangTime); setTimeLeft(hangTime);
     }
-  }, [reps, sets, hangTime, restTime, recoverTime, finishWorkout]);
+  }, [stepsMode, sortedSteps, advanceToStep, reps, sets, hangTime, restTime, recoverTime, finishWorkout]);
 
   const toggleRunning = useCallback(() => {
     setIsRunning(prev => { if (prev) Speech.stop(); return !prev; });
@@ -183,6 +224,20 @@ export default function TimerScreen({ route, navigation }: Props) {
         setTimeLeft(prevTime => {
           if (prevTime <= 1) {
             const currPhase = phaseRef.current;
+
+            if (stepsMode) {
+              const nextIdx = currPhase === 'prepare' ? 0 : currentStepIndexRef.current + 1;
+              if (nextIdx < sortedSteps.length) {
+                const step = sortedSteps[nextIdx];
+                setPhase(step.phase); phaseRef.current = step.phase;
+                setCurrentStepIndex(nextIdx); currentStepIndexRef.current = nextIdx;
+                setCurrentDuration(step.durationSeconds);
+                return step.durationSeconds;
+              }
+              finishWorkout();
+              return 0;
+            }
+
             const currRep = currentRepRef.current;
             const currSet = currentSetRef.current;
             if (currPhase === 'prepare') {
@@ -208,7 +263,7 @@ export default function TimerScreen({ route, navigation }: Props) {
       }, 1000);
     }
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [isRunning, isFinished, hangTime, restTime, recoverTime, reps, sets, finishWorkout]);
+  }, [isRunning, isFinished, stepsMode, sortedSteps, hangTime, restTime, recoverTime, reps, sets, finishWorkout]);
 
   if (isFinished) {
     return (
@@ -224,7 +279,9 @@ export default function TimerScreen({ route, navigation }: Props) {
           <View style={styles.congratsContainer}>
             <Text style={{ fontSize: 64, marginBottom: 10 }}>🎉</Text>
             <Text style={globalStyles.congratsTitle}>{t('timer.completed')}</Text>
-            <Text style={globalStyles.congratsStats}>{t('common.reps_x_sets', { reps, sets })}</Text>
+            <Text style={globalStyles.congratsStats}>
+              {stepsMode ? t('timer.steps_completed', { n: sortedSteps.length }) : t('common.reps_x_sets', { reps, sets })}
+            </Text>
             <Text style={styles.typeBadge}>{TYPE_EMOJIS[workoutType]} {workoutType.charAt(0).toUpperCase() + workoutType.slice(1)}</Text>
             <Text style={styles.congratsSub}>{t('timer.great_session')}</Text>
           </View>
@@ -244,6 +301,7 @@ export default function TimerScreen({ route, navigation }: Props) {
 
   const phaseLabel = getPhaseLabel(phase, workoutType);
   const phaseColor = getPhaseColor(phase);
+  const currentStep = stepsMode && currentStepIndex >= 0 ? sortedSteps[currentStepIndex] : null;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -260,7 +318,7 @@ export default function TimerScreen({ route, navigation }: Props) {
         </View>
 
         <View style={styles.timerContainer}>
-          <Text style={[globalStyles.phase, { color: phaseColor }]}>{phaseLabel}</Text>
+          <Text style={[globalStyles.phase, { color: phaseColor }]}>{currentStep?.label || phaseLabel}</Text>
           <Animated.View style={[styles.timeContainer, { opacity: blinkAnim }]}>
             <Svg width={320} height={320} style={{ position: 'absolute' }}>
               <Circle cx="160" cy="160" r="145" stroke="#333" strokeWidth="10" fill="none" strokeOpacity="0.4" />
@@ -274,7 +332,9 @@ export default function TimerScreen({ route, navigation }: Props) {
             <Text style={[styles.roundText, { color: phaseColor }]}>
               {phase === 'prepare'
                 ? t('timer.preparation')
-                : t('timer.rep_set', { rep: currentRep, reps, set: currentSet, sets })}
+                : stepsMode
+                  ? t('timer.step_of', { current: currentStepIndex + 1, total: sortedSteps.length })
+                  : t('timer.rep_set', { rep: currentRep, reps, set: currentSet, sets })}
             </Text>
           </View>
         </View>
