@@ -19,6 +19,13 @@ export const globalStyles = StyleSheet.create({
     color: '#4ecdc4',
     fontSize: 18,
     fontWeight: 'bold',
+    minWidth: 64,
+  },
+  // Mirrors backText's reserved width so a centered header title (flex:1,
+  // textAlign:'center') is centered on the whole header, not just the space
+  // to the right of the back button.
+  headerSpacer: {
+    minWidth: 64,
   },
   title: {
     fontSize: 32,

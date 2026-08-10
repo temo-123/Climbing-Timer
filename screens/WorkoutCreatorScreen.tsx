@@ -89,6 +89,7 @@ export default function WorkoutCreatorScreen() {
           <Text style={globalStyles.backText}>{t('common.back')}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('creator.title')}</Text>
+        <View style={globalStyles.headerSpacer} />
       </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>

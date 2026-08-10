@@ -63,6 +63,7 @@ export default function TrainingPlansScreen() {
           <Text style={globalStyles.backText}>{t('common.back')}</Text>
         </TouchableOpacity>
         <Text style={[globalStyles.title, styles.headerTitle]}>{t('plans.title')}</Text>
+        <View style={globalStyles.headerSpacer} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, KeyboardAvoidingView, Platform, Alert, TextInput, Image,
+  ScrollView, KeyboardAvoidingView, Platform, Alert, TextInput, Image, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -9,8 +9,9 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { RootStackParamList } from '../types/navigation';
-import { Sex, Equipment, UserProfile } from '../types/models';
+import { Sex, Equipment, UserProfile, TrainableProduct } from '../types/models';
 import { setLanguage, AppLanguage } from '../utils/i18n';
+import { fetchTrainableProducts } from '../utils/api';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Onboarding'>;
 
@@ -40,7 +41,7 @@ const ALL_EQUIPMENT: { id: Equipment; emoji: string; labelKey: string; descKey: 
   { id: 'weights',       emoji: '⚖️', labelKey: 'equip_weights',      descKey: 'equip_desc_weights' },
 ];
 
-const WALL_DEGREES = [30, 40, 45, 50, 55, 60, 70, 90];
+const WALL_DEGREES = [30, 35, 40, 45, 50, 55, 60, 70, 90];
 
 function Stepper({ value, onDec, onInc, unit }: { value: number; onDec: () => void; onInc: () => void; unit: string }) {
   return (
@@ -82,12 +83,38 @@ export default function OnboardingScreen() {
   const [equipment,  setEquipment]  = useState<Equipment[]>([]);
   const [wallDegree, setWallDegree] = useState<number>(45);
 
+  const [trainableProducts, setTrainableProducts] = useState<TrainableProduct[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [selectedProductIds, setSelectedProductIds] = useState<number[]>([]);
+  const [showOtherEquip, setShowOtherEquip] = useState(false);
+
   const [experienceYears, setExperienceYears] = useState<number>(-1);
   const [climbingGrade,   setClimbingGrade]   = useState('');
 
   const [saving, setSaving] = useState(false);
 
-  const hasWall = equipment.includes('climbing_wall') || equipment.includes('system_wall');
+  // Equipment derived from selected shop products, merged with whatever was
+  // picked manually in the "Other Equipment" fallback section — this is what
+  // drives every equipment-gated bit of onboarding UI (board hint, wall angle,
+  // the "no equipment" empty state) and what gets saved to the profile.
+  const productDerivedEquipment = trainableProducts
+    .filter(p => selectedProductIds.includes(p.id) && p.equipmentType)
+    .map(p => p.equipmentType as Equipment);
+  const effectiveEquipment = Array.from(new Set([...equipment, ...productDerivedEquipment]));
+  const hasWall = effectiveEquipment.includes('climbing_wall') || effectiveEquipment.includes('system_wall');
+  // Auto-expand the manual equipment fallback once we know there are no
+  // trainable products to show (backend not ready yet, or a fetch failure).
+  const isOtherEquipVisible = showOtherEquip || (!loadingProducts && trainableProducts.length === 0);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingProducts(true);
+    fetchTrainableProducts(selectedLang)
+      .then(data => { if (!cancelled) setTrainableProducts(data); })
+      .catch(() => { if (!cancelled) setTrainableProducts([]); })
+      .finally(() => { if (!cancelled) setLoadingProducts(false); });
+    return () => { cancelled = true; };
+  }, [selectedLang]);
 
   const pickLanguage = async (lang: AppLanguage) => {
     setSelectedLang(lang);
@@ -98,7 +125,14 @@ export default function OnboardingScreen() {
   const toggleEquipment = (id: Equipment) =>
     setEquipment(prev => prev.includes(id) ? prev.filter(e => e !== id) : [...prev, id]);
 
+  const toggleProduct = (id: number) =>
+    setSelectedProductIds(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]);
+
   const validateStep = (): boolean => {
+    if (step === 2 && effectiveEquipment.length === 0) {
+      Alert.alert(t('onboarding.err_equipment_title'), t('onboarding.err_equipment'));
+      return false;
+    }
     if (step === 3 && experienceYears < 0) {
       Alert.alert(t('onboarding.err_experience_title'), t('onboarding.err_experience'));
       return false;
@@ -119,10 +153,11 @@ export default function OnboardingScreen() {
       sex,
       weight,
       height,
-      equipment,
+      equipment: effectiveEquipment,
       wallDegree: hasWall ? wallDegree : undefined,
       experienceYears,
       climbingGrade: climbingGrade.trim() || undefined,
+      products: selectedProductIds.length > 0 ? selectedProductIds : undefined,
     };
     try {
       await AsyncStorage.setItem('userProfile', JSON.stringify(profile));
@@ -227,30 +262,72 @@ export default function OnboardingScreen() {
       <Text style={styles.stepTitle}>{t('onboarding.step2_title')}</Text>
       <Text style={styles.stepSub}>{t('onboarding.step2_sub')}</Text>
 
-      <View style={styles.equipGrid}>
-        {ALL_EQUIPMENT.map(opt => {
-          const active = equipment.includes(opt.id);
-          return (
-            <TouchableOpacity
-              key={opt.id}
-              style={[styles.equipCard, active && styles.equipCardActive]}
-              onPress={() => toggleEquipment(opt.id)}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.equipEmoji}>{opt.emoji}</Text>
-              <Text style={[styles.equipLabel, active && styles.equipLabelActive]}>
-                {t(`onboarding.${opt.labelKey}` as any)}
-              </Text>
-              <Text style={styles.equipDesc}>
-                {t(`onboarding.${opt.descKey}` as any)}
-              </Text>
-              {active && <View style={styles.checkBadge}><Text style={styles.checkText}>✓</Text></View>}
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+      <Text style={styles.questionLabel}>{t('onboarding.products_title')}</Text>
+      <Text style={styles.wallSub}>{t('onboarding.products_sub')}</Text>
 
-      {equipment.includes('fingerboard') && (
+      {loadingProducts ? (
+        <ActivityIndicator size="small" color="#4ecdc4" style={styles.productsLoading} />
+      ) : trainableProducts.length > 0 ? (
+        <View style={styles.equipGrid}>
+          {trainableProducts.map(product => {
+            const active = selectedProductIds.includes(product.id);
+            return (
+              <TouchableOpacity
+                key={product.id}
+                style={[styles.productCard, active && styles.equipCardActive]}
+                onPress={() => toggleProduct(product.id)}
+                activeOpacity={0.8}
+              >
+                {product.imageUrl ? (
+                  <Image source={{ uri: product.imageUrl }} style={styles.productCardImage} resizeMode="cover" />
+                ) : (
+                  <View style={[styles.productCardImage, styles.productCardImagePlaceholder]}>
+                    <Text style={styles.equipEmoji}>🧗</Text>
+                  </View>
+                )}
+                <Text style={[styles.equipLabel, active && styles.equipLabelActive]} numberOfLines={2}>
+                  {product.title}
+                </Text>
+                {active && <View style={styles.checkBadge}><Text style={styles.checkText}>✓</Text></View>}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      ) : null}
+
+      <TouchableOpacity style={styles.otherEquipToggle} onPress={() => setShowOtherEquip(s => !s)} activeOpacity={0.7}>
+        <Text style={styles.otherEquipToggleText}>
+          {isOtherEquipVisible ? '▾' : '▸'}  {t('onboarding.other_equip')}
+        </Text>
+      </TouchableOpacity>
+      <Text style={styles.hint}>{t('onboarding.no_equip_hint')}</Text>
+
+      {isOtherEquipVisible && (
+        <View style={styles.equipGrid}>
+          {ALL_EQUIPMENT.map(opt => {
+            const active = equipment.includes(opt.id);
+            return (
+              <TouchableOpacity
+                key={opt.id}
+                style={[styles.equipCard, active && styles.equipCardActive]}
+                onPress={() => toggleEquipment(opt.id)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.equipEmoji}>{opt.emoji}</Text>
+                <Text style={[styles.equipLabel, active && styles.equipLabelActive]}>
+                  {t(`onboarding.${opt.labelKey}` as any)}
+                </Text>
+                <Text style={styles.equipDesc}>
+                  {t(`onboarding.${opt.descKey}` as any)}
+                </Text>
+                {active && <View style={styles.checkBadge}><Text style={styles.checkText}>✓</Text></View>}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
+
+      {effectiveEquipment.includes('fingerboard') && (
         <View style={styles.boardHint}>
           <Text style={styles.boardHintIcon}>🏔️</Text>
           <Text style={styles.boardHintText}>{t('onboarding.board_preview_sub')}</Text>
@@ -277,7 +354,7 @@ export default function OnboardingScreen() {
         </View>
       )}
 
-      {equipment.length === 0 && (
+      {effectiveEquipment.length === 0 && (
         <TouchableOpacity style={styles.noEquipBtn} onPress={() => setStep(3)}>
           <Text style={styles.noEquipTitle}>{t('onboarding.skip_equip')}</Text>
           <Text style={styles.noEquipSub}>{t('onboarding.skip_equip_sub')}</Text>
@@ -428,6 +505,15 @@ const styles = StyleSheet.create({
   equipLabel: { color: '#bbb', fontSize: 14, fontWeight: '800', marginBottom: 4 },
   equipLabelActive: { color: '#4ecdc4' },
   equipDesc: { color: '#555', fontSize: 11, lineHeight: 16 },
+  productsLoading: { marginBottom: 16 },
+  productCard: {
+    width: '47%', backgroundColor: '#222', borderRadius: 18, padding: 12,
+    borderWidth: 1.5, borderColor: '#2d2d2d', position: 'relative', minHeight: 150,
+  },
+  productCardImage: { width: '100%', height: 90, borderRadius: 12, marginBottom: 8, backgroundColor: '#1a1a1a' },
+  productCardImagePlaceholder: { alignItems: 'center', justifyContent: 'center' },
+  otherEquipToggle: { paddingVertical: 6, marginBottom: 2 },
+  otherEquipToggleText: { color: '#4ecdc4', fontSize: 13, fontWeight: '700' },
   boardHint: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     backgroundColor: '#0f2018', borderRadius: 12, padding: 14, marginBottom: 14,

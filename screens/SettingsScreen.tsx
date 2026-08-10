@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { RootStackParamList } from '../types/navigation';
-import { getApiBaseUrl, setApiBaseUrl } from '../utils/api';
+import { TrainingPlan } from '../types/models';
+import { getApiBaseUrl } from '../utils/api';
+import { cancelNotifications } from '../utils/notifications';
+import { removePlanFromCalendar } from '../utils/calendar';
 import { globalStyles } from '../styles/globalStyles';
 import Footer from '../components/Footer';
 
@@ -18,10 +22,29 @@ export default function SettingsScreen() {
 
   useEffect(() => { getApiBaseUrl().then(setApiUrl); }, []);
 
-  const save = async () => {
-    if (!apiUrl.trim()) { Alert.alert(t('common.error'), t('settings.error_empty')); return; }
-    await setApiBaseUrl(apiUrl);
-    Alert.alert(t('settings.saved_title'), t('settings.saved_msg'));
+  const resetApp = async () => {
+    try {
+      const plansRaw = await AsyncStorage.getItem('plans');
+      const plans: TrainingPlan[] = plansRaw ? JSON.parse(plansRaw) : [];
+      for (const plan of plans) {
+        if (plan.notificationIds?.length) await cancelNotifications(plan.notificationIds);
+        if (plan.calendarEventIds?.length) await removePlanFromCalendar(plan.calendarEventIds);
+      }
+    } catch { /* best effort — still wipe storage even if cleanup fails */ }
+
+    await AsyncStorage.clear();
+    navigation.reset({ index: 0, routes: [{ name: 'Onboarding' }] });
+  };
+
+  const confirmReset = () => {
+    Alert.alert(
+      t('settings.reset_title'),
+      t('settings.reset_msg'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('settings.reset_btn'), style: 'destructive', onPress: resetApp },
+      ]
+    );
   };
 
   return (
@@ -31,27 +54,20 @@ export default function SettingsScreen() {
           <Text style={globalStyles.backText}>{t('common.back')}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('settings.title')}</Text>
+        <View style={globalStyles.headerSpacer} />
       </View>
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <View style={styles.content}>
-          <Text style={styles.sectionLabel}>{t('settings.api_section')}</Text>
-          <Text style={styles.hint}>{t('settings.api_hint')}</Text>
-          <TextInput
-            style={globalStyles.input}
-            value={apiUrl}
-            onChangeText={setApiUrl}
-            placeholder="https://climbing.ge/api"
-            placeholderTextColor="#666"
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="url"
-          />
-          <TouchableOpacity style={styles.saveButton} onPress={save}>
-            <Text style={styles.saveButtonText}>{t('common.save')}</Text>
-          </TouchableOpacity>
-        </View>
-      </KeyboardAvoidingView>
+      <View style={styles.content}>
+        <Text style={styles.sectionLabel}>{t('settings.api_section')}</Text>
+        <Text style={styles.hint}>{t('settings.api_hint')}</Text>
+        <Text style={styles.apiUrlText}>{apiUrl}</Text>
+
+        <Text style={[styles.sectionLabel, styles.dangerSectionLabel]}>{t('settings.reset_section')}</Text>
+        <Text style={styles.hint}>{t('settings.reset_hint')}</Text>
+        <TouchableOpacity style={styles.resetButton} onPress={confirmReset}>
+          <Text style={styles.resetButtonText}>{t('settings.reset_btn')}</Text>
+        </TouchableOpacity>
+      </View>
       <Footer />
     </SafeAreaView>
   );
@@ -62,7 +78,9 @@ const styles = StyleSheet.create({
   headerTitle: { color: '#fff', fontSize: 20, fontWeight: '700', flex: 1, textAlign: 'center' },
   content: { padding: 20 },
   sectionLabel: { color: '#666', fontSize: 11, fontWeight: '700', letterSpacing: 1.5, marginBottom: 8 },
+  dangerSectionLabel: { marginTop: 32 },
   hint: { color: '#888', fontSize: 13, marginBottom: 16, lineHeight: 19 },
-  saveButton: { backgroundColor: '#4ecdc4', borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 16 },
-  saveButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  apiUrlText: { color: '#4ecdc4', fontSize: 15, fontWeight: '600' },
+  resetButton: { borderRadius: 14, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: '#ff6b6b' },
+  resetButtonText: { color: '#ff6b6b', fontSize: 15, fontWeight: '700' },
 });

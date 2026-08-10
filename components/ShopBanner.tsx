@@ -1,15 +1,34 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Linking } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Linking, Image, ScrollView, ActivityIndicator } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { CLIMBING_GE_PRODUCTS, localizedProduct } from '../data/climbingGearProducts';
+import { fetchFeaturedProducts } from '../utils/api';
+import { ShopProduct } from '../types/models';
 
-const SHOP_URL = 'https://shop.climbing.ge/products/';
+const SHOP_URL = 'https://shop.climbing.ge/';
+const MAX_PRODUCTS = 8;
+
+const formatPrice = (value: number, currency: string) =>
+  `${Number.isInteger(value) ? value : value.toFixed(2)}${currency}`;
 
 export default function ShopBanner() {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
+  const [products, setProducts] = useState<ShopProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    fetchFeaturedProducts(lang)
+      .then(data => { if (!cancelled) setProducts(data.slice(0, MAX_PRODUCTS)); })
+      .catch(() => { if (!cancelled) setProducts([]); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [lang]);
 
   const openShop = () => Linking.openURL(SHOP_URL).catch(() => {});
+  const openProduct = (product: ShopProduct) =>
+    Linking.openURL(`${SHOP_URL}${lang}/product/${product.urlTitle}`).catch(() => {});
 
   return (
     <View style={styles.wrapper}>
@@ -24,27 +43,50 @@ export default function ShopBanner() {
       <Text style={styles.title}>{t('shop.title')}</Text>
       <Text style={styles.sub}>{t('shop.sub')}</Text>
 
-      {/* Product chips */}
-      <View style={styles.productsRow}>
-        {CLIMBING_GE_PRODUCTS.map(product => {
-          const loc = localizedProduct(product, lang);
-          return (
+      {/* Product cards */}
+      {loading ? (
+        <View style={styles.loadingRow}>
+          <ActivityIndicator size="small" color="#2ed573" />
+        </View>
+      ) : products.length > 0 ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.productsScroll}
+          contentContainerStyle={styles.productsRow}
+        >
+          {products.map(product => (
             <TouchableOpacity
               key={product.id}
-              style={styles.productChip}
-              onPress={openShop}
+              style={styles.productCard}
+              onPress={() => openProduct(product)}
               activeOpacity={0.75}
             >
-              <Text style={styles.chipEmoji}>{product.emoji}</Text>
-              <Text style={styles.chipName} numberOfLines={2}>{loc.name}</Text>
+              {product.imageUrl ? (
+                <Image source={{ uri: product.imageUrl }} style={styles.productImage} resizeMode="cover" />
+              ) : (
+                <View style={[styles.productImage, styles.productImagePlaceholder]}>
+                  <Text style={styles.placeholderEmoji}>🧗</Text>
+                </View>
+              )}
+              <Text style={styles.cardName} numberOfLines={2}>{product.title}</Text>
               <View style={styles.chipPriceRow}>
-                <Text style={styles.chipPriceFrom}>{t('shop.price_from')}</Text>
-                <Text style={styles.chipPrice}>{product.priceRange.split('–')[0]}</Text>
+                {product.discountedPrice != null ? (
+                  <>
+                    <Text style={styles.chipPriceOld}>{formatPrice(product.price, product.currency)}</Text>
+                    <Text style={styles.chipPrice}>{formatPrice(product.discountedPrice, product.currency)}</Text>
+                  </>
+                ) : (
+                  <>
+                    <Text style={styles.chipPriceFrom}>{t('shop.price_from')}</Text>
+                    <Text style={styles.chipPrice}>{formatPrice(product.price, product.currency)}</Text>
+                  </>
+                )}
               </View>
             </TouchableOpacity>
-          );
-        })}
-      </View>
+          ))}
+        </ScrollView>
+      ) : null}
 
       {/* CTA */}
       <TouchableOpacity style={styles.ctaBtn} onPress={openShop} activeOpacity={0.85}>
@@ -104,41 +146,65 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
 
-  productsRow: {
-    flexDirection: 'row',
-    gap: 8,
+  loadingRow: {
+    height: 148,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 14,
   },
-  productChip: {
-    flex: 1,
+  productsScroll: {
+    marginBottom: 14,
+  },
+  productsRow: {
+    gap: 10,
+    paddingRight: 2,
+  },
+  productCard: {
+    width: 112,
     backgroundColor: '#152218',
     borderRadius: 12,
-    padding: 10,
-    alignItems: 'center',
+    padding: 8,
     borderWidth: 1,
     borderColor: '#2ed57322',
   },
-  chipEmoji: {
-    fontSize: 22,
-    marginBottom: 5,
+  productImage: {
+    width: '100%',
+    height: 96,
+    borderRadius: 8,
+    marginBottom: 8,
+    backgroundColor: '#0d1f1a',
   },
-  chipName: {
+  productImagePlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  placeholderEmoji: {
+    fontSize: 28,
+  },
+  cardName: {
     color: '#ccc',
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '600',
-    textAlign: 'center',
+    minHeight: 28,
     marginBottom: 6,
-    lineHeight: 13,
+    lineHeight: 14,
   },
   chipPriceRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    gap: 2,
+    flexWrap: 'wrap',
+    gap: 4,
   },
   chipPriceFrom: {
     color: '#6aaa88',
     fontSize: 8,
     fontWeight: '500',
+  },
+  chipPriceOld: {
+    color: '#6a8a78',
+    fontSize: 10,
+    fontWeight: '500',
+    textDecorationLine: 'line-through',
   },
   chipPrice: {
     color: '#2ed573',

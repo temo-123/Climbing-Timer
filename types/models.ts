@@ -25,6 +25,20 @@ export interface UserProfile {
   wallDegree?: number;
   experienceYears: number;
   climbingGrade?: string;
+  // shop.climbing.ge product IDs selected during onboarding as "what I train with",
+  // in place of (or alongside) the manual equipment checklist.
+  products?: number[];
+}
+
+// A shop.climbing.ge product tagged by the backend as corresponding to a piece
+// of training equipment — used by onboarding to let users pick gear they own
+// instead of the abstract equipment checklist.
+export interface TrainableProduct {
+  id: number;
+  urlTitle: string;
+  title: string;
+  imageUrl: string | null;
+  equipmentType: Equipment | null;
 }
 
 export interface WorkoutTranslation {
@@ -90,6 +104,18 @@ export interface TrainingPlan {
   calendarEnabled?: boolean;
   calendarEventIds?: string[];
   translations?: Record<string, PlanTranslation>;
+}
+
+export interface ShopProduct {
+  id: number;
+  urlTitle: string;
+  title: string;
+  imageUrl: string | null;
+  price: number;
+  discountedPrice: number | null;
+  discountPercent: number;
+  currency: string;
+  outOfStock: boolean;
 }
 
 export interface HistoryEntry {

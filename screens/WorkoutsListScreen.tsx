@@ -89,7 +89,8 @@ export default function WorkoutsListScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={globalStyles.backText}>{t('common.back')}</Text>
         </TouchableOpacity>
-        <Text style={globalStyles.title}>{t('workouts.title', { n: workouts.length })}</Text>
+        <Text style={styles.headerTitle}>{t('workouts.title', { n: workouts.length })}</Text>
+        <View style={globalStyles.headerSpacer} />
       </View>
       <View style={globalStyles.content}>
         <FlatList
@@ -112,6 +113,7 @@ export default function WorkoutsListScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#1a1a1a' },
+  headerTitle: { color: '#fff', fontSize: 20, fontWeight: '700', flex: 1, textAlign: 'center' },
   list: { padding: 20 },
   workoutItem: { backgroundColor: '#2d2d2d', padding: 20, borderRadius: 15, marginBottom: 15 },
   workoutInfo: { flex: 1 },

@@ -368,8 +368,10 @@
     "title": "Settings",
     "api_section": "TRAINING SERVER",
     "api_hint": "The web address of your training API. Plans and exercises are loaded from this server.",
-    "error_empty": "Enter a server address",
-    "saved_title": "Saved",
-    "saved_msg": "Server address updated."
+    "reset_section": "DANGER ZONE",
+    "reset_hint": "Permanently delete your profile, workouts, history, and active plans, and start over from registration.",
+    "reset_btn": "Clear My Data",
+    "reset_title": "Clear all data?",
+    "reset_msg": "This deletes your profile, workouts, history, and active plans from this device. This can't be undone."
   }
 }

@@ -96,6 +96,7 @@ export default function CustomTrainingScreen() {
           <Text style={globalStyles.backText}>{t('common.back')}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('custom.title')}</Text>
+        <View style={globalStyles.headerSpacer} />
       </View>
 
       <View style={styles.tabs}>
