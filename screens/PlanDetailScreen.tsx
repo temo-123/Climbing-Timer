@@ -16,15 +16,9 @@ import Footer from '../components/Footer';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PlanDetail'>;
 
-const PRESET_TIMES = ['06:00', '07:00', '08:00', '09:00', '12:00', '17:00', '18:00', '19:00', '20:00'];
-
-const formatTime = (t: string) => {
-  const [h, m] = t.split(':');
-  const hour = parseInt(h);
-  const ampm = hour >= 12 ? 'PM' : 'AM';
-  const display = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
-  return `${display}:${m} ${ampm}`;
-};
+// Calendar events need a fixed time-of-day to anchor to; notifications
+// themselves now always fire at 10:00 AM and 4:30 PM (see utils/notifications.ts).
+const CALENDAR_EVENT_TIME = '10:00';
 
 const getNextMonday = (): Date => {
   const d = new Date();
@@ -50,11 +44,9 @@ export default function PlanDetailScreen({ route, navigation }: Props) {
   const [configuring, setConfiguring] = useState(false);
   const [startChoice, setStartChoice] = useState<'today' | 'next-monday'>('today');
   const [wantNotif, setWantNotif] = useState(true);
-  const [notifTime, setNotifTime] = useState('08:00');
   const [wantCalendar, setWantCalendar] = useState(true);
 
   const [notifEnabled, setNotifEnabled] = useState(false);
-  const [activeNotifTime, setActiveNotifTime] = useState('08:00');
   const [calendarEnabled, setCalendarEnabled] = useState(false);
 
   useEffect(() => { loadPlan(); }, [planId]);
@@ -71,7 +63,6 @@ export default function PlanDetailScreen({ route, navigation }: Props) {
       if (stored) {
         setIsActive(!!stored.isActive);
         setNotifEnabled(!!stored.notificationsEnabled);
-        setActiveNotifTime(stored.notificationTime || '08:00');
         setCalendarEnabled(!!stored.calendarEnabled);
       }
     } catch {
@@ -112,30 +103,30 @@ export default function PlanDetailScreen({ route, navigation }: Props) {
       let notifIds: string[] = [];
       if (wantNotif) {
         const granted = await requestNotificationPermissions();
-        if (granted) notifIds = await scheduleTrainingNotifications(plan, notifTime);
+        if (granted) notifIds = await scheduleTrainingNotifications(plan);
         else Alert.alert(t('plans.notif_blocked'), t('plans.notif_blocked_msg'));
       }
 
       let calEventIds: string[] = [];
       if (wantCalendar) {
         const granted = await requestCalendarPermissions();
-        if (granted) calEventIds = await addPlanToCalendar(plan, startDate, notifTime);
+        if (granted) calEventIds = await addPlanToCalendar(plan, startDate, CALENDAR_EVENT_TIME);
         else Alert.alert(t('plans.cal_blocked'), t('plans.cal_blocked_msg'));
       }
 
       const saved = await savePlanToStorage({
         isActive: true, activatedAt: new Date().toISOString(), startDate,
-        notificationsEnabled: notifIds.length > 0, notificationTime: notifTime, notificationIds: notifIds,
+        notificationsEnabled: notifIds.length > 0, notificationIds: notifIds,
         calendarEnabled: calEventIds.length > 0, calendarEventIds: calEventIds,
       });
 
       setPlan(saved); setIsActive(true);
-      setNotifEnabled(notifIds.length > 0); setActiveNotifTime(notifTime);
+      setNotifEnabled(notifIds.length > 0);
       setCalendarEnabled(calEventIds.length > 0); setConfiguring(false);
 
       const startLabel = startChoice === 'today' ? t('plans.start_today').toLowerCase() : `${t('plans.start_monday')} ${shortDate(getNextMonday().toISOString())}`;
       const lines = [t('plans.activated_body', { name: plan.name, date: startLabel })];
-      if (notifIds.length) lines.push(t('plans.activated_notif', { time: formatTime(notifTime) }));
+      if (notifIds.length) lines.push(t('plans.activated_notif'));
       if (calEventIds.length) lines.push(t('plans.activated_cal', { count: calEventIds.length }));
       Alert.alert(t('plans.activated_title'), lines.join('\n'), [{ text: t('plans.lets_climb') }]);
     } catch { Alert.alert(t('plans.error_title'), t('plans.error_msg')); }
@@ -164,8 +155,8 @@ export default function PlanDetailScreen({ route, navigation }: Props) {
       const granted = await requestNotificationPermissions();
       if (!granted) { Alert.alert(t('plans.notif_blocked'), t('plans.notif_blocked_msg')); return; }
       if (plan.notificationIds?.length) await cancelNotifications(plan.notificationIds);
-      const ids = await scheduleTrainingNotifications(plan, activeNotifTime);
-      await savePlanToStorage({ notificationsEnabled: true, notificationTime: activeNotifTime, notificationIds: ids });
+      const ids = await scheduleTrainingNotifications(plan);
+      await savePlanToStorage({ notificationsEnabled: true, notificationIds: ids });
       setNotifEnabled(true);
     } else {
       if (plan.notificationIds?.length) await cancelNotifications(plan.notificationIds);
@@ -174,30 +165,13 @@ export default function PlanDetailScreen({ route, navigation }: Props) {
     }
   };
 
-  const handleActiveTimeChange = () => {
-    Alert.alert(t('plans.reminder_time'), null as any, [
-      ...PRESET_TIMES.map(time => ({
-        text: formatTime(time) + (time === activeNotifTime ? ' ✓' : ''),
-        onPress: async () => {
-          setActiveNotifTime(time);
-          if (notifEnabled && plan) {
-            if (plan.notificationIds?.length) await cancelNotifications(plan.notificationIds);
-            const ids = await scheduleTrainingNotifications(plan, time);
-            await savePlanToStorage({ notificationTime: time, notificationIds: ids });
-          }
-        },
-      })),
-      { text: t('common.cancel'), style: 'cancel' },
-    ]);
-  };
-
   const handleCalendarToggle = async (value: boolean) => {
     if (!plan) return;
     if (value) {
       const granted = await requestCalendarPermissions();
       if (!granted) { Alert.alert(t('plans.cal_blocked'), t('plans.cal_blocked_msg')); return; }
       const startDate = plan.startDate || new Date().toISOString();
-      const ids = await addPlanToCalendar(plan, startDate, activeNotifTime);
+      const ids = await addPlanToCalendar(plan, startDate, CALENDAR_EVENT_TIME);
       if (ids.length === 0) { Alert.alert(t('plans.cal_error'), t('plans.cal_error_msg')); return; }
       await savePlanToStorage({ calendarEnabled: true, calendarEventIds: ids });
       setCalendarEnabled(true);
@@ -338,22 +312,9 @@ export default function PlanDetailScreen({ route, navigation }: Props) {
 
             <Text style={styles.wizardLabel}>{t('plans.want_notif')}</Text>
             <View style={styles.notifToggleRow}>
-              <Text style={styles.notifToggleText}>{wantNotif ? t('plans.notif_on', { time: formatTime(notifTime) }) : t('plans.notif_off')}</Text>
+              <Text style={styles.notifToggleText}>{wantNotif ? t('plans.notif_on') : t('plans.notif_off')}</Text>
               <Switch value={wantNotif} onValueChange={setWantNotif} trackColor={{ false: '#3d3d3d', true: '#4ecdc4' }} thumbColor="#fff" />
             </View>
-
-            {wantNotif && (
-              <>
-                <Text style={styles.wizardLabel}>{t('plans.what_time')}</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.timeScroll}>
-                  {PRESET_TIMES.map(time => (
-                    <TouchableOpacity key={time} style={[styles.timeChip, notifTime === time && styles.timeChipActive]} onPress={() => setNotifTime(time)}>
-                      <Text style={[styles.timeChipText, notifTime === time && styles.timeChipTextActive]}>{formatTime(time)}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </>
-            )}
 
             <Text style={styles.wizardLabel}>{t('plans.want_calendar')}</Text>
             <View style={styles.notifToggleRow}>
@@ -392,12 +353,7 @@ export default function PlanDetailScreen({ route, navigation }: Props) {
                 <Text style={styles.notifLabel}>{t('plans.enable_notif')}</Text>
                 <Switch value={notifEnabled} onValueChange={handleNotifToggle} trackColor={{ false: '#3d3d3d', true: '#4ecdc4' }} thumbColor="#fff" />
               </View>
-              {notifEnabled && (
-                <TouchableOpacity style={styles.timeRow} onPress={handleActiveTimeChange}>
-                  <Text style={styles.notifLabel}>{t('plans.reminder_time')}</Text>
-                  <Text style={styles.timeValue}>{formatTime(activeNotifTime)} ›</Text>
-                </TouchableOpacity>
-              )}
+              {notifEnabled && <Text style={styles.calHint}>{t('plans.notif_fixed_times')}</Text>}
             </View>
 
             <View style={styles.notifSection}>
@@ -470,11 +426,6 @@ const styles = StyleSheet.create({
   notifToggleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1e1e22', borderRadius: 10, padding: 14, marginBottom: 8, gap: 10 },
   notifToggleText: { color: '#ccc', fontSize: 14 },
   calHint: { color: '#666', fontSize: 11, marginTop: 3 },
-  timeScroll: { marginBottom: 16 },
-  timeChip: { backgroundColor: '#1e1e22', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, marginRight: 8, borderWidth: 1, borderColor: 'transparent' },
-  timeChipActive: { borderColor: '#4ecdc4', backgroundColor: '#1e3040' },
-  timeChipText: { color: '#888', fontSize: 13, fontWeight: '600' },
-  timeChipTextActive: { color: '#4ecdc4' },
   confirmBtn: { backgroundColor: '#4ecdc4', borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 8 },
   confirmBtnText: { color: '#1a1a1a', fontSize: 16, fontWeight: '800' },
   cancelBtn: { alignItems: 'center', padding: 12 },
@@ -485,8 +436,6 @@ const styles = StyleSheet.create({
   notifTitle: { color: '#fff', fontSize: 15, fontWeight: '700', marginBottom: 12 },
   notifRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   notifLabel: { color: '#ccc', fontSize: 14 },
-  timeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
-  timeValue: { color: '#4ecdc4', fontSize: 14, fontWeight: '600' },
   deactivateButton: { backgroundColor: '#2d2d2d', borderRadius: 14, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: '#ff6b6b' },
   deactivateButtonText: { color: '#ff6b6b', fontSize: 15, fontWeight: '600' },
 });

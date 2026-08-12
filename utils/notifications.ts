@@ -43,39 +43,58 @@ export const requestNotificationPermissions = async (): Promise<boolean> => {
 const toExpoWeekday = (dayIndex: number): number =>
   dayIndex === 6 ? 1 : dayIndex + 2;
 
+// Fixed daily reminder times for active training plans -- a morning
+// heads-up plus an afternoon nudge if the session hasn't happened yet.
+const MORNING_HOUR = 10;
+const MORNING_MINUTE = 0;
+const AFTERNOON_HOUR = 16;
+const AFTERNOON_MINUTE = 30;
+
 export const scheduleTrainingNotifications = async (
-  plan: TrainingPlan,
-  notificationTime: string
+  plan: TrainingPlan
 ): Promise<string[]> => {
   if (isExpoGo()) return [];
-
-  const [hourStr, minuteStr] = notificationTime.split(':');
-  const hour = parseInt(hourStr, 10);
-  const minute = parseInt(minuteStr, 10);
 
   const ids: string[] = [];
 
   for (const session of plan.sessions) {
     const weekday = toExpoWeekday(session.dayIndex);
     const workoutNames = session.workouts.map(w => w.name).join(' + ');
+    const data = { planId: plan.id, dayLabel: session.dayLabel };
 
-    const id = await Notifications.scheduleNotificationAsync({
+    const morningId = await Notifications.scheduleNotificationAsync({
       content: {
-        title: `${plan.emoji} Time to train!`,
-        body: `${plan.name}: ${workoutNames}`,
+        title: `${plan.emoji} Today is your training day!`,
+        body: `${session.dayLabel}: ${workoutNames}`,
         sound: 'default',
-        data: { planId: plan.id, dayLabel: session.dayLabel },
+        data,
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
         weekday,
-        hour,
-        minute,
+        hour: MORNING_HOUR,
+        minute: MORNING_MINUTE,
         channelId: 'training-reminders',
       } as any,
     });
+    ids.push(morningId);
 
-    ids.push(id);
+    const afternoonId = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: `⏰ Don't forget your training today!`,
+        body: `${session.dayLabel}: ${workoutNames}`,
+        sound: 'default',
+        data,
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+        weekday,
+        hour: AFTERNOON_HOUR,
+        minute: AFTERNOON_MINUTE,
+        channelId: 'training-reminders',
+      } as any,
+    });
+    ids.push(afternoonId);
   }
 
   return ids;
