@@ -1,6 +1,6 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Equipment, ShopProduct, TrainableProduct, TrainingPlan, TrainingType, Workout } from '../types/models';
+import { Equipment, ShopCategoryGroup, ShopProduct, TrainableProduct, TrainingPlan, TrainingType, Workout } from '../types/models';
 
 // Backend: github.com/temo-123/climbing.ge — Laravel content API + admin CMS,
 // documented in that repo's docs/TRAINING.md. Fixed — not user-configurable.
@@ -40,11 +40,33 @@ const isWorkout = (data: unknown): data is Workout => !!data && typeof data === 
 const isPlanArray = (data: unknown): data is TrainingPlan[] => Array.isArray(data);
 const isPlan = (data: unknown): data is TrainingPlan => !!data && typeof data === 'object';
 
+// Android blocks cleartext (http://) network requests by default, so any
+// image the admin-authored content points at over plain http silently fails
+// to load in the app (it works fine in a browser, which is why this is easy
+// to miss). The backend serves both schemes over the same host, so upgrading
+// is always safe.
+const secureUrl = (url?: string | null): string | undefined => (url ? url.replace(/^http:\/\//i, 'https://') : undefined);
+
+function secureWorkout(w: Workout): Workout {
+  return {
+    ...w,
+    imageUrl: secureUrl(w.imageUrl),
+    steps: w.steps?.map(s => ({ ...s, imageUrl: secureUrl(s.imageUrl) })),
+  };
+}
+
+function securePlan(p: TrainingPlan): TrainingPlan {
+  return {
+    ...p,
+    sessions: p.sessions.map(s => ({ ...s, workouts: s.workouts.map(secureWorkout) })),
+  };
+}
+
 export async function fetchTrainings(type?: TrainingType): Promise<Workout[]> {
   return withCache(`cache_trainings_${type ?? 'all'}`, async () => {
     const { data } = await client.get<Workout[]>('/get_training/get_all_trainings', { params: type ? { type } : undefined });
     if (!isWorkoutArray(data)) throw new Error('Malformed trainings response');
-    return data;
+    return data.map(secureWorkout);
   }, isWorkoutArray);
 }
 
@@ -52,7 +74,7 @@ export async function fetchTrainingById(id: string): Promise<Workout> {
   return withCache(`cache_training_${id}`, async () => {
     const { data } = await client.get<Workout>(`/get_training/get_training_data/${id}`);
     if (!isWorkout(data)) throw new Error('Malformed training response');
-    return data;
+    return secureWorkout(data);
   }, isWorkout);
 }
 
@@ -60,7 +82,7 @@ export async function fetchPlans(): Promise<TrainingPlan[]> {
   return withCache('cache_plans', async () => {
     const { data } = await client.get<TrainingPlan[]>('/get_training_plan/get_all_plans');
     if (!isPlanArray(data)) throw new Error('Malformed plans response');
-    return data;
+    return data.map(securePlan);
   }, isPlanArray);
 }
 
@@ -68,7 +90,7 @@ export async function fetchPlanById(id: string): Promise<TrainingPlan> {
   return withCache(`cache_plan_${id}`, async () => {
     const { data } = await client.get<TrainingPlan>(`/get_training_plan/get_plan_data/${id}`);
     if (!isPlan(data)) throw new Error('Malformed plan response');
-    return data;
+    return securePlan(data);
   }, isPlan);
 }
 
@@ -76,7 +98,7 @@ export async function fetchPlanById(id: string): Promise<TrainingPlan> {
 // The raw shape is the storefront's internal representation (global/locale split,
 // image filenames instead of URLs) — normalized to ShopProduct at this boundary.
 interface RawShopProduct {
-  global_product?: { id: number; url_title: string };
+  global_product?: { id: number; url_title: string; subcategory_id?: number | null };
   locale_product?: { title: string };
   product_images?: string[];
   min_price?: string | number;
@@ -146,4 +168,65 @@ export async function fetchTrainableProducts(lang: string): Promise<TrainablePro
       })
       .filter((p): p is TrainableProduct => p !== null);
   }, isTrainableProductArray);
+}
+
+// Product category tree (docs/SHOP.md's ProductCategoryController) — every
+// category the backend has is included, none are curated/hardcoded here.
+interface RawShopCategory {
+  id: number;
+  us_name: string | null;
+  ka_name: string | null;
+}
+
+// Products link to a subcategory, not a category directly (docs/SHOP.md's
+// products table has `subcategory_id`, no `category_id`), so this is needed
+// to resolve subcategory_id -> category_id.
+interface RawShopSubcategory {
+  id: number;
+  category_id: number;
+}
+
+const isCategoryGroupArray = (data: unknown): data is ShopCategoryGroup[] => Array.isArray(data);
+
+// There's no public endpoint that filters or counts products by category
+// server-side, so this fetches the full category tree, subcategory tree, and
+// product list in one round trip and groups them client-side — one request
+// each, not one per category. Categories with zero in-stock products are
+// dropped entirely so ShopBanner never has to render an empty tab.
+export async function fetchShopCategoryProducts(lang: string): Promise<ShopCategoryGroup[]> {
+  return withCache(`cache_shop_category_products_${lang}`, async () => {
+    const [{ data: rawCategories }, { data: rawSubcategories }, { data: rawProducts }] = await Promise.all([
+      client.get<RawShopCategory[]>('/get_product/get_product_category/get_all_product_category'),
+      client.get<RawShopSubcategory[]>('/get_product/get_product_category/get_subcategory/get_all_subcategories'),
+      client.get<RawShopProduct[]>(`/get_product/get_local_products/${lang}`),
+    ]);
+    if (!Array.isArray(rawCategories) || !Array.isArray(rawSubcategories) || !Array.isArray(rawProducts)) {
+      throw new Error('Malformed shop category products response');
+    }
+
+    const categoryIdBySubcategoryId = new Map(rawSubcategories.map(s => [s.id, s.category_id]));
+    const assetBaseUrl = (await getApiBaseUrl()).replace(/\/api\/?$/, '');
+    const productsByCategoryId = new Map<number, ShopProduct[]>();
+    for (const raw of rawProducts) {
+      const subcategoryId = raw.global_product?.subcategory_id;
+      const categoryId = subcategoryId != null ? categoryIdBySubcategoryId.get(subcategoryId) : undefined;
+      if (categoryId == null) continue;
+      const product = normalizeProduct(raw, assetBaseUrl);
+      if (!product || product.outOfStock) continue;
+      const list = productsByCategoryId.get(categoryId);
+      if (list) list.push(product); else productsByCategoryId.set(categoryId, [product]);
+    }
+
+    return rawCategories
+      .map((raw): ShopCategoryGroup | null => {
+        const products = productsByCategoryId.get(raw.id);
+        if (!products || products.length === 0) return null;
+        return {
+          category: { id: raw.id, name: (lang === 'ka' ? raw.ka_name : raw.us_name) ?? raw.us_name ?? '' },
+          products,
+        };
+      })
+      .filter((g): g is ShopCategoryGroup => g !== null)
+      .sort((a, b) => a.category.id - b.category.id);
+  }, isCategoryGroupArray);
 }

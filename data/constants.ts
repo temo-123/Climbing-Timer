@@ -37,6 +37,13 @@ export function getLevelLabel(level: DifficultyLevel | string, lang: string): st
   return LEVEL_LABELS_LOCALIZED[level]?.[lang] ?? LEVEL_LABELS_LOCALIZED[level]?.en ?? String(level).toUpperCase();
 }
 
+// climbing.ge's "Climbing trainers" category (docs/SHOP.md's
+// ProductCategoryController, id 1) is what ShopBanner leads with on Home —
+// training gear is the most relevant shop content for this app. Every other
+// category is fetched and labeled dynamically; only this priority pick is
+// hardcoded, and only as an id (the API exposes no slug).
+export const PRIORITY_SHOP_CATEGORY_ID = 1;
+
 export const DIFFICULTY_COLORS: Record<Difficulty, string> = {
   easy: '#2ed573',
   medium: '#ffa502',
@@ -63,6 +70,13 @@ export function localizedPlan(plan: TrainingPlan, lang: string) {
     description: tr.description ?? plan.description,
     coachNote: tr.coachNote ?? plan.coachNote,
   };
+}
+
+// Many trainings only have per-step photos set (no training-level cover
+// image), so fall back to the first step that has one rather than showing a
+// placeholder when a real photo actually exists.
+export function getWorkoutPreviewImage(workout: Workout): string | undefined {
+  return workout.imageUrl || workout.steps?.find(s => !!s.imageUrl)?.imageUrl;
 }
 
 export function localizedWorkout(workout: Workout, lang: string) {

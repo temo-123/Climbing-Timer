@@ -118,6 +118,21 @@ export interface ShopProduct {
   outOfStock: boolean;
 }
 
+// A shop.climbing.ge product category (docs/SHOP.md's ProductCategoryController) —
+// used to label the category filter tabs in ShopBanner.
+export interface ShopCategory {
+  id: number;
+  name: string;
+}
+
+// A category paired with its in-stock products — only categories with at
+// least one product are ever produced, so ShopBanner can render tabs
+// straight off this list without checking for emptiness itself.
+export interface ShopCategoryGroup {
+  category: ShopCategory;
+  products: ShopProduct[];
+}
+
 export interface HistoryEntry {
   date: string;
   workoutName: string;

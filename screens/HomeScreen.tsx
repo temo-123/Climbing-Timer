@@ -152,9 +152,11 @@ export default function HomeScreen() {
 
         {/* Primary grid */}
         <Text style={styles.sectionLabel}>{t('home.quick_access')}</Text>
-        <View style={styles.grid}>
+        <View style={styles.gridRow}>
           <GridCard emoji="⚡" label={t('home.quick_exercise')} sub={t('home.quick_exercise_sub')} onPress={() => navigation.navigate('CustomTraining')} />
           <GridCard emoji="📋" label={t('home.training_plans')} sub={t('home.training_plans_sub')} onPress={() => navigation.navigate('TrainingPlans')} />
+        </View>
+        <View style={styles.gridRow}>
           <GridCard emoji="📊" label={t('home.my_progress')} sub={t('home.my_progress_sub')} onPress={() => navigation.navigate('Analytics')} />
           <GridCard emoji="📅" label={t('home.history')} sub={t('home.history_sub')} onPress={() => navigation.navigate('History')} />
         </View>
@@ -228,8 +230,8 @@ const styles = StyleSheet.create({
   noPlanCta: { backgroundColor: '#2ed573', borderRadius: 10, paddingHorizontal: 20, paddingVertical: 10 },
   noPlanCtaText: { color: '#1a1a1a', fontSize: 15, fontWeight: '800' },
   sectionLabel: { color: '#555', fontSize: 11, fontWeight: '700', letterSpacing: 1.5, marginBottom: 12 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 12 },
-  gridCard: { backgroundColor: '#2d2d2d', borderRadius: 16, padding: 18, width: '47%', minHeight: 110, justifyContent: 'space-between' },
+  gridRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
+  gridCard: { flex: 1, backgroundColor: '#2d2d2d', borderRadius: 16, padding: 18, minHeight: 110, justifyContent: 'space-between' },
   gridEmoji: { fontSize: 30, marginBottom: 8 },
   gridLabel: { color: '#fff', fontSize: 15, fontWeight: '700' },
   gridSub: { color: '#888', fontSize: 12, marginTop: 3 },

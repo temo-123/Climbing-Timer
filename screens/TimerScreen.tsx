@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Alert, Vibration, Animated } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, Alert, Vibration, Animated, LayoutChangeEvent } from 'react-native';
 import * as Speech from 'expo-speech';
 import Svg, { Circle } from 'react-native-svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -10,8 +10,9 @@ import { RootStackParamList } from '../types/navigation';
 import { HistoryEntry, StepPhase } from '../types/models';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { globalStyles } from '../styles/globalStyles';
-import { TYPE_EMOJIS, localizedWorkout } from '../data/constants';
+import { TYPE_EMOJIS, localizedWorkout, getWorkoutPreviewImage } from '../data/constants';
 import Footer from '../components/Footer';
+import TopAlignedImage from '../components/TopAlignedImage';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Timer'>;
 type Phase = StepPhase;
@@ -53,6 +54,23 @@ export default function TimerScreen({ route, navigation }: Props) {
   const [currentStepIndex, setCurrentStepIndex] = useState(-1);
   const [currentDuration, setCurrentDuration] = useState(12);
   const [isFinished, setIsFinished] = useState(false);
+
+  // The countdown circle's diameter is derived from whatever vertical space
+  // is actually left over (this section is the only flexible one — banner,
+  // title bar, and controls are all fixed/content-sized), rather than a
+  // fixed pixel size that fits some phones and clips others (e.g. the extra
+  // Stop button that appears while running eats into this on small screens).
+  const [circleSize, setCircleSize] = useState(200);
+  const onTimerSectionLayout = useCallback((e: LayoutChangeEvent) => {
+    const available = e.nativeEvent.layout.height;
+    // ~90px is the phase label + rounds label + their margins — whatever's
+    // left is the circle's budget. Floor is a legibility limit, not a nice
+    // target: on the tightest devices/states (e.g. a small phone once the
+    // extra Stop button appears) there just isn't much room, and a slightly
+    // undersized circle beats one that overlaps the title bar above it.
+    const reserved = 90;
+    setCircleSize(Math.min(220, Math.max(70, Math.round(available - reserved))));
+  }, []);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const phaseRef = useRef<Phase>('prepare');
@@ -302,31 +320,52 @@ export default function TimerScreen({ route, navigation }: Props) {
   const phaseLabel = getPhaseLabel(phase, workoutType);
   const phaseColor = getPhaseColor(phase);
   const currentStep = stepsMode && currentStepIndex >= 0 ? sortedSteps[currentStepIndex] : null;
+  // Once a specific step is active, show only *that* step's photo (or no
+  // photo at all) — falling back to some other step's image here would mean
+  // silently redisplaying an old, unrelated photo for every step that
+  // doesn't have its own (real trainings are often only partially
+  // photographed), which reads as the image being "stuck" or wrong. The
+  // workout-level preview is only used before a step is active yet (prepare).
+  const bannerImage = currentStep ? currentStep.imageUrl : getWorkoutPreviewImage(workout);
+
+  const strokeWidth = 9;
+  const radius = circleSize / 2 - 15;
+  const circumference = 2 * Math.PI * radius;
+  const timeFontSize = Math.round(circleSize * 0.28);
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" backgroundColor="#1a1a1a" />
       <View style={styles.mainContent}>
-        <View style={styles.header}>
+        <View style={styles.banner}>
+          {bannerImage ? (
+            <TopAlignedImage uri={bannerImage} style={StyleSheet.absoluteFill} />
+          ) : (
+            <View style={[StyleSheet.absoluteFill, styles.bannerPlaceholder]}>
+              <Text style={styles.bannerPlaceholderEmoji}>{TYPE_EMOJIS[workoutType]}</Text>
+            </View>
+          )}
           {!isRunning && (
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Text style={globalStyles.backText}>{t('timer.back')}</Text>
+            <TouchableOpacity style={styles.bannerBackBtn} onPress={() => navigation.goBack()}>
+              <Text style={styles.bannerBackText}>{t('timer.back')}</Text>
             </TouchableOpacity>
           )}
-          <Text style={styles.workoutName}>{workoutName}</Text>
-          <Text style={styles.typeTag}>{TYPE_EMOJIS[workoutType]}</Text>
+          <View style={styles.bannerTypeTag}><Text style={styles.bannerTypeTagText}>{TYPE_EMOJIS[workoutType]}</Text></View>
+        </View>
+        <View style={styles.titleBar}>
+          <Text style={styles.titleBarText} numberOfLines={1}>{workoutName}</Text>
         </View>
 
-        <View style={styles.timerContainer}>
+        <View style={styles.timerSection} onLayout={onTimerSectionLayout}>
           <Text style={[globalStyles.phase, { color: phaseColor }]}>{currentStep?.label || phaseLabel}</Text>
-          <Animated.View style={[styles.timeContainer, { opacity: blinkAnim }]}>
-            <Svg width={320} height={320} style={{ position: 'absolute' }}>
-              <Circle cx="160" cy="160" r="145" stroke="#333" strokeWidth="10" fill="none" strokeOpacity="0.4" />
-              <Circle cx="160" cy="160" r="145" stroke={phaseColor} strokeWidth="10" fill="none"
-                strokeLinecap="round" strokeDasharray="911" strokeDashoffset={progress * 911}
-                rotation="-90" origin="160,160" />
+          <Animated.View style={[{ width: circleSize, height: circleSize, alignItems: 'center', justifyContent: 'center' }, { opacity: blinkAnim }]}>
+            <Svg width={circleSize} height={circleSize} style={{ position: 'absolute' }}>
+              <Circle cx={circleSize / 2} cy={circleSize / 2} r={radius} stroke="#333" strokeWidth={strokeWidth} fill="none" strokeOpacity="0.4" />
+              <Circle cx={circleSize / 2} cy={circleSize / 2} r={radius} stroke={phaseColor} strokeWidth={strokeWidth} fill="none"
+                strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={progress * circumference}
+                rotation="-90" origin={`${circleSize / 2},${circleSize / 2}`} />
             </Svg>
-            <Text style={[globalStyles.time, { color: phaseColor }]}>{formatTime(timeLeft)}</Text>
+            <Text style={[globalStyles.time, { color: phaseColor, fontSize: timeFontSize }]}>{formatTime(timeLeft)}</Text>
           </Animated.View>
           <View style={styles.rounds}>
             <Text style={[styles.roundText, { color: phaseColor }]}>
@@ -366,11 +405,30 @@ export default function TimerScreen({ route, navigation }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#1a1a1a' },
   mainContent: { flex: 1 },
+  // 16:9 like the training list/modal images, inset as a card (not full-bleed
+  // to the top) — the countdown circle below is shrunk to compensate so the
+  // controls still never require scrolling to reach.
+  banner: {
+    aspectRatio: 16 / 9, backgroundColor: '#1e2530', overflow: 'hidden',
+    marginTop: 16, marginHorizontal: 16, borderRadius: 16,
+  },
+  bannerPlaceholder: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e2530' },
+  bannerPlaceholderEmoji: { fontSize: 56, opacity: 0.5 },
+  bannerBackBtn: {
+    position: 'absolute', top: 14, left: 14, backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 16, paddingHorizontal: 14, paddingVertical: 7,
+  },
+  bannerBackText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  bannerTypeTag: {
+    position: 'absolute', top: 14, right: 14, width: 34, height: 34, borderRadius: 17,
+    backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center',
+  },
+  bannerTypeTagText: { fontSize: 16 },
+  titleBar: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 4 },
+  titleBarText: { color: '#fff', fontSize: 19, fontWeight: '800', textAlign: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', padding: 20, paddingTop: 10 },
   workoutName: { color: '#fff', fontSize: 18, fontWeight: '700', flex: 1, textAlign: 'center', marginHorizontal: 8 },
-  typeTag: { fontSize: 22 },
-  timerContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  timeContainer: { width: 320, height: 320, alignItems: 'center', justifyContent: 'center' },
+  timerSection: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   rounds: { marginTop: 20 },
   roundText: { fontSize: 20, textAlign: 'center', fontWeight: '600' },
   controls: { paddingHorizontal: 20, paddingBottom: 20, gap: 12 },

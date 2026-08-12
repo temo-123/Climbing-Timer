@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Linking, Image, ScrollView, ActivityIndicator } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { fetchFeaturedProducts } from '../utils/api';
-import { ShopProduct } from '../types/models';
+import { fetchFeaturedProducts, fetchShopCategoryProducts } from '../utils/api';
+import { ShopCategoryGroup, ShopProduct } from '../types/models';
+import { PRIORITY_SHOP_CATEGORY_ID } from '../data/constants';
 
 const SHOP_URL = 'https://shop.climbing.ge/';
 const MAX_PRODUCTS = 8;
@@ -13,18 +14,51 @@ const formatPrice = (value: number, currency: string) =>
 export default function ShopBanner() {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
-  const [products, setProducts] = useState<ShopProduct[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [featuredProducts, setFeaturedProducts] = useState<ShopProduct[]>([]);
+  const [featuredLoading, setFeaturedLoading] = useState(true);
+  const [categoryGroups, setCategoryGroups] = useState<ShopCategoryGroup[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const didAutoSelect = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    setFeaturedLoading(true);
     fetchFeaturedProducts(lang)
-      .then(data => { if (!cancelled) setProducts(data.slice(0, MAX_PRODUCTS)); })
-      .catch(() => { if (!cancelled) setProducts([]); })
-      .finally(() => { if (!cancelled) setLoading(false); });
+      .then(data => { if (!cancelled) setFeaturedProducts(data); })
+      .catch(() => { if (!cancelled) setFeaturedProducts([]); })
+      .finally(() => { if (!cancelled) setFeaturedLoading(false); });
     return () => { cancelled = true; };
   }, [lang]);
+
+  // Every category the backend has, minus any with no in-stock products —
+  // fetchShopCategoryProducts already drops empty ones. Category id
+  // PRIORITY_SHOP_CATEGORY_ID is auto-selected the first time it's seen
+  // (if it turns out empty, this just leaves Featured selected instead).
+  useEffect(() => {
+    let cancelled = false;
+    setCategoriesLoading(true);
+    fetchShopCategoryProducts(lang)
+      .then(groups => {
+        if (cancelled) return;
+        setCategoryGroups(groups);
+        if (!didAutoSelect.current && groups.some(g => g.category.id === PRIORITY_SHOP_CATEGORY_ID)) {
+          didAutoSelect.current = true;
+          setSelectedCategoryId(PRIORITY_SHOP_CATEGORY_ID);
+        }
+      })
+      .catch(() => { if (!cancelled) setCategoryGroups([]); })
+      .finally(() => { if (!cancelled) setCategoriesLoading(false); });
+    return () => { cancelled = true; };
+  }, [lang]);
+
+  const products = useMemo(() => {
+    const list = selectedCategoryId == null
+      ? featuredProducts
+      : categoryGroups.find(g => g.category.id === selectedCategoryId)?.products ?? [];
+    return list.slice(0, MAX_PRODUCTS);
+  }, [selectedCategoryId, featuredProducts, categoryGroups]);
+  const loading = selectedCategoryId == null ? featuredLoading : categoriesLoading;
 
   const openShop = () => Linking.openURL(SHOP_URL).catch(() => {});
   const openProduct = (product: ShopProduct) =>
@@ -42,6 +76,37 @@ export default function ShopBanner() {
 
       <Text style={styles.title}>{t('shop.title')}</Text>
       <Text style={styles.sub}>{t('shop.sub')}</Text>
+
+      {/* Category tabs */}
+      {categoryGroups.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.tabsScroll}
+          contentContainerStyle={styles.tabsRow}
+        >
+          <TouchableOpacity
+            style={[styles.tab, selectedCategoryId == null && styles.tabActive]}
+            onPress={() => setSelectedCategoryId(null)}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.tabText, selectedCategoryId == null && styles.tabTextActive]}>{t('shop.featured')}</Text>
+          </TouchableOpacity>
+          {categoryGroups.map(({ category }) => {
+            const active = selectedCategoryId === category.id;
+            return (
+              <TouchableOpacity
+                key={category.id}
+                style={[styles.tab, active && styles.tabActive]}
+                onPress={() => setSelectedCategoryId(category.id)}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.tabText, active && styles.tabTextActive]}>{category.name}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      )}
 
       {/* Product cards */}
       {loading ? (
@@ -143,7 +208,35 @@ const styles = StyleSheet.create({
     color: '#6aaa88',
     fontSize: 12,
     lineHeight: 17,
-    marginBottom: 16,
+    marginBottom: 24,
+  },
+
+  tabsScroll: {
+    marginBottom: 18,
+  },
+  tabsRow: {
+    gap: 8,
+    paddingRight: 2,
+  },
+  tab: {
+    backgroundColor: '#152218',
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#2ed57333',
+  },
+  tabActive: {
+    backgroundColor: '#2ed573',
+    borderColor: '#2ed573',
+  },
+  tabText: {
+    color: '#6aaa88',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  tabTextActive: {
+    color: '#0a1a10',
   },
 
   loadingRow: {

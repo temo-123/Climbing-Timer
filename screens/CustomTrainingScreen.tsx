@@ -8,9 +8,10 @@ import { useTranslation } from 'react-i18next';
 import { RootStackParamList } from '../types/navigation';
 import { Workout, TrainingType, UserProfile, Equipment } from '../types/models';
 import { fetchTrainings } from '../utils/api';
-import { TYPE_EMOJIS, DIFFICULTY_COLORS, getDifficultyLabel, localizedWorkout } from '../data/constants';
+import { TYPE_EMOJIS, DIFFICULTY_COLORS, getDifficultyLabel, localizedWorkout, getWorkoutPreviewImage } from '../data/constants';
 import { globalStyles } from '../styles/globalStyles';
 import Footer from '../components/Footer';
+import TopAlignedImage from '../components/TopAlignedImage';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'CustomTraining'>;
 
@@ -25,6 +26,7 @@ const formatSec = (s: number) => {
   if (s < 60) return `${s}s`;
   return `${Math.floor(s / 60)}m${s % 60 ? ' ' + (s % 60) + 's' : ''}`;
 };
+
 
 export default function CustomTrainingScreen() {
   const { t, i18n } = useTranslation();
@@ -142,7 +144,9 @@ export default function CustomTrainingScreen() {
           </View>
         ) : exercises.map(ex => {
           const loc = lEx(ex);
-          const showImage = ex.imageUrl && !(ex.type === 'fingerboard' && !userEquipment.includes('fingerboard'));
+          const previewImage = getWorkoutPreviewImage(ex);
+          const isLocked = ex.type === 'fingerboard' && !userEquipment.includes('fingerboard');
+          const showImage = !!previewImage && !isLocked;
           return (
           <TouchableOpacity
             key={ex.id}
@@ -150,11 +154,17 @@ export default function CustomTrainingScreen() {
             onPress={() => setSelectedExercise(ex)}
             activeOpacity={0.85}
           >
-            {ex.type === 'fingerboard' && !userEquipment.includes('fingerboard')
+            {isLocked
               ? <Text style={styles.cardDescOnly}>{loc.description}</Text>
-              : showImage
-                ? <Image source={{ uri: ex.imageUrl }} style={styles.cardImage} resizeMode="cover" />
-                : <View style={[styles.cardImage, styles.cardImagePlaceholder]}><Text style={{ fontSize: 40 }}>{TYPE_EMOJIS[ex.type]}</Text></View>
+              : (
+                <View style={styles.cardImage}>
+                  {showImage
+                    ? <TopAlignedImage uri={previewImage!} style={StyleSheet.absoluteFill} />
+                    : <View style={[StyleSheet.absoluteFill, styles.cardImagePlaceholder]}><Text style={{ fontSize: 40 }}>{TYPE_EMOJIS[ex.type]}</Text></View>
+                  }
+                  <View style={styles.cardImageBadge}><Text style={styles.cardImageBadgeText}>{TYPE_EMOJIS[ex.type]}</Text></View>
+                </View>
+              )
             }
             <View style={styles.cardBody}>
               <View style={styles.cardTitleRow}>
@@ -208,16 +218,14 @@ export default function CustomTrainingScreen() {
       >
         {selectedExercise && (() => {
           const selLoc = lEx(selectedExercise);
+          const selPreviewImage = getWorkoutPreviewImage(selectedExercise);
+          const selLocked = selectedExercise.type === 'fingerboard' && !userEquipment.includes('fingerboard');
           return (
           <View style={styles.modalOverlay}>
             <View style={styles.modalSheet}>
               <ScrollView showsVerticalScrollIndicator={false}>
-                {!!selectedExercise.imageUrl && !(selectedExercise.type === 'fingerboard' && !userEquipment.includes('fingerboard')) && (
-                  <Image
-                    source={{ uri: selectedExercise.imageUrl }}
-                    style={styles.modalImage}
-                    resizeMode="contain"
-                  />
+                {!!selPreviewImage && !selLocked && (
+                  <TopAlignedImage uri={selPreviewImage} style={styles.modalImage} />
                 )}
                 <View style={styles.modalBody}>
                   <View style={styles.cardTitleRow}>
@@ -288,9 +296,18 @@ const styles = StyleSheet.create({
   centerStateText: { color: '#aaa', fontSize: 14, textAlign: 'center', lineHeight: 20, marginTop: 10 },
   retryBtn: { backgroundColor: '#4ecdc4', borderRadius: 10, paddingHorizontal: 24, paddingVertical: 12, marginTop: 18 },
   retryBtnText: { color: '#1a1a1a', fontSize: 14, fontWeight: '700' },
-  card: { backgroundColor: '#2d2d2d', borderRadius: 16, marginBottom: 16, overflow: 'hidden' },
-  cardImage: { width: '100%', height: 180 },
+  card: {
+    backgroundColor: '#2d2d2d', borderRadius: 16, marginBottom: 16, overflow: 'hidden',
+    borderWidth: 1, borderColor: '#333',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
+  },
+  cardImage: { width: '100%', aspectRatio: 16 / 9, backgroundColor: '#1e2530' },
   cardImagePlaceholder: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e2530' },
+  cardImageBadge: {
+    position: 'absolute', top: 10, left: 10, width: 34, height: 34, borderRadius: 17,
+    backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center',
+  },
+  cardImageBadgeText: { fontSize: 16 },
   cardBody: { padding: 14 },
   cardTitleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 6 },
   cardName: { color: '#fff', fontSize: 17, fontWeight: '700', flex: 1, marginRight: 8 },
@@ -306,7 +323,7 @@ const styles = StyleSheet.create({
   startBtnText: { color: '#fff', fontSize: 14, fontWeight: '600' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' },
   modalSheet: { backgroundColor: '#1e1e22', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '90%' },
-  modalImage: { width: '100%', height: 260, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
+  modalImage: { width: '100%', aspectRatio: 16 / 9, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
   modalBody: { padding: 20, paddingBottom: 30 },
   modalName: { color: '#fff', fontSize: 22, fontWeight: '800', flex: 1, marginRight: 8 },
   modalTarget: { color: '#aaa', fontSize: 14, marginBottom: 12, marginTop: 4 },
