@@ -15,9 +15,17 @@ import { fetchTrainableProducts } from '../utils/api';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Onboarding'>;
 
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 5;
 
-const STEP_LABELS = ['Language', 'About You', 'Equipment', 'Climbing'];
+const STEP_LABELS = ['Language', 'How It Works', 'About You', 'Equipment', 'Climbing'];
+
+const INTRO_CARDS: { emoji: string; titleKey: string; descKey: string }[] = [
+  { emoji: '⚡', titleKey: 'intro_workouts_title', descKey: 'intro_workouts_desc' },
+  { emoji: '📋', titleKey: 'intro_plans_title', descKey: 'intro_plans_desc' },
+  { emoji: '⏱️', titleKey: 'intro_timer_title', descKey: 'intro_timer_desc' },
+  { emoji: '📊', titleKey: 'intro_history_title', descKey: 'intro_history_desc' },
+  { emoji: '🔔', titleKey: 'intro_reminders_title', descKey: 'intro_reminders_desc' },
+];
 
 const SEX_OPTIONS: { id: Sex; emoji: string; labelKey: string }[] = [
   { id: 'male',   emoji: '♂',  labelKey: 'sex_male' },
@@ -129,11 +137,11 @@ export default function OnboardingScreen() {
     setSelectedProductIds(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]);
 
   const validateStep = (): boolean => {
-    if (step === 2 && effectiveEquipment.length === 0) {
+    if (step === 3 && effectiveEquipment.length === 0) {
       Alert.alert(t('onboarding.err_equipment_title'), t('onboarding.err_equipment'));
       return false;
     }
-    if (step === 3 && experienceYears < 0) {
+    if (step === 4 && experienceYears < 0) {
       Alert.alert(t('onboarding.err_experience_title'), t('onboarding.err_experience'));
       return false;
     }
@@ -211,7 +219,26 @@ export default function OnboardingScreen() {
     </ScrollView>
   );
 
-  // ── Step 1: About You ────────────────────────────────────────────────────────
+  // ── Step 1: How It Works ─────────────────────────────────────────────────────
+  const renderIntro = () => (
+    <ScrollView contentContainerStyle={styles.stepContent}>
+      <Text style={styles.stepEmoji}>🧭</Text>
+      <Text style={styles.stepTitle}>{t('onboarding.intro_title')}</Text>
+      <Text style={styles.stepSub}>{t('onboarding.intro_sub')}</Text>
+
+      {INTRO_CARDS.map(card => (
+        <View key={card.titleKey} style={styles.introCard}>
+          <Text style={styles.introCardEmoji}>{card.emoji}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.introCardTitle}>{t(`onboarding.${card.titleKey}` as any)}</Text>
+            <Text style={styles.introCardDesc}>{t(`onboarding.${card.descKey}` as any)}</Text>
+          </View>
+        </View>
+      ))}
+    </ScrollView>
+  );
+
+  // ── Step 2: About You ────────────────────────────────────────────────────────
   const renderStep1 = () => (
     <ScrollView contentContainerStyle={styles.stepContent}>
       <Text style={styles.stepEmoji}>👋</Text>
@@ -255,7 +282,7 @@ export default function OnboardingScreen() {
     </ScrollView>
   );
 
-  // ── Step 2: Equipment ────────────────────────────────────────────────────────
+  // ── Step 3: Equipment ────────────────────────────────────────────────────────
   const renderStep2 = () => (
     <ScrollView contentContainerStyle={styles.stepContent}>
       <Text style={styles.stepEmoji}>🏋️</Text>
@@ -355,7 +382,7 @@ export default function OnboardingScreen() {
       )}
 
       {effectiveEquipment.length === 0 && (
-        <TouchableOpacity style={styles.noEquipBtn} onPress={() => setStep(3)}>
+        <TouchableOpacity style={styles.noEquipBtn} onPress={() => setStep(4)}>
           <Text style={styles.noEquipTitle}>{t('onboarding.skip_equip')}</Text>
           <Text style={styles.noEquipSub}>{t('onboarding.skip_equip_sub')}</Text>
         </TouchableOpacity>
@@ -363,7 +390,7 @@ export default function OnboardingScreen() {
     </ScrollView>
   );
 
-  // ── Step 3: Climbing Experience ──────────────────────────────────────────────
+  // ── Step 4: Climbing Experience ──────────────────────────────────────────────
   const renderStep3 = () => (
     <ScrollView contentContainerStyle={styles.stepContent} keyboardShouldPersistTaps="handled">
       <Text style={styles.stepEmoji}>🧗</Text>
@@ -408,7 +435,7 @@ export default function OnboardingScreen() {
     </ScrollView>
   );
 
-  const steps = [renderStep0, renderStep1, renderStep2, renderStep3];
+  const steps = [renderStep0, renderIntro, renderStep1, renderStep2, renderStep3];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -477,7 +504,16 @@ const styles = StyleSheet.create({
   langNative: { color: '#555', fontSize: 13, marginTop: 2 },
   langNameActive: { color: '#4ecdc4' },
 
-  // Step 1
+  // Step 1: How It Works
+  introCard: {
+    flexDirection: 'row', gap: 14, alignItems: 'flex-start', backgroundColor: '#222',
+    borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1.5, borderColor: '#2d2d2d',
+  },
+  introCardEmoji: { fontSize: 28 },
+  introCardTitle: { color: '#4ecdc4', fontSize: 15, fontWeight: '800', marginBottom: 4 },
+  introCardDesc: { color: '#999', fontSize: 13, lineHeight: 19 },
+
+  // Step 2
   sexRow: { flexDirection: 'row', gap: 10, marginBottom: 24 },
   sexCard: {
     flex: 1, alignItems: 'center', backgroundColor: '#222',

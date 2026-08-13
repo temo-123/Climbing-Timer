@@ -48,7 +48,7 @@ export default function TodayModal({ visible, onClose, plan, session }: Props) {
         <View style={styles.sheet}>
           <View style={styles.handle} />
           <View style={styles.header}>
-            <View>
+            <View style={styles.headerTitleBlock}>
               <Text style={styles.planName}>{plan.emoji} {localizedPlan(plan, lang).name}</Text>
               {weekNumber() !== '' && <Text style={styles.weekLabel}>{weekNumber()}</Text>}
             </View>
@@ -125,6 +125,7 @@ const styles = StyleSheet.create({
   sheet: { backgroundColor: '#1e1e22', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '90%' },
   handle: { width: 40, height: 4, backgroundColor: '#3d3d3d', borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
+  headerTitleBlock: { flex: 1, marginRight: 12 },
   planName: { color: '#fff', fontSize: 20, fontWeight: '800' },
   weekLabel: { color: '#4ecdc4', fontSize: 13, marginTop: 4, fontWeight: '600' },
   closeBtn: { width: 30, height: 30, backgroundColor: '#2d2d2d', borderRadius: 15, alignItems: 'center', justifyContent: 'center' },

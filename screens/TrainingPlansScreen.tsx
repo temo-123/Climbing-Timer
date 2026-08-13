@@ -10,6 +10,7 @@ import { TrainingPlan } from '../types/models';
 import { fetchPlans } from '../utils/api';
 import { LEVEL_COLORS, localizedPlan, getLevelLabel } from '../data/constants';
 import { globalStyles } from '../styles/globalStyles';
+import MenuButton from '../components/MenuButton';
 import Footer from '../components/Footer';
 import { DAY_KEYS } from '../utils/i18n';
 
@@ -59,11 +60,11 @@ export default function TrainingPlansScreen() {
   return (
     <SafeAreaView style={globalStyles.container}>
       <View style={globalStyles.header}>
+        <MenuButton align="left" />
+        <Text style={[globalStyles.title, styles.headerTitle]}>{t('plans.title')}</Text>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={globalStyles.backText}>{t('common.back')}</Text>
         </TouchableOpacity>
-        <Text style={[globalStyles.title, styles.headerTitle]}>{t('plans.title')}</Text>
-        <View style={globalStyles.headerSpacer} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>

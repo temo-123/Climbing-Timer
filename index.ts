@@ -1,4 +1,5 @@
 import './utils/silenceExpoGoWarnings'; // must be first — patches console before any module loads
+import 'react-native-get-random-values'; // must load before jsencrypt (utils/auth.ts) touches crypto.getRandomValues
 import { registerRootComponent } from 'expo';
 
 import App from './App';

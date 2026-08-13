@@ -6,12 +6,13 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import Footer from '../components/Footer';
+import MenuButton from '../components/MenuButton';
 import TodayModal from '../components/TodayModal';
 import ShopBanner from '../components/ShopBanner';
 import { RootStackParamList } from '../types/navigation';
 import { TrainingPlan, HistoryEntry, PlanSession } from '../types/models';
 import { fetchPlanById } from '../utils/api';
-import { localizedPlan } from '../data/constants';
+import { localizedPlan, localizedWorkout } from '../data/constants';
 import { DAY_KEYS } from '../utils/i18n';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
@@ -89,16 +90,16 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Navbar — fixed to the top, doesn't scroll with the content below */}
+      <View style={styles.headerRow}>
+        <MenuButton align="left" />
+        <Text style={styles.appTitle}>{t('home.app_title')}</Text>
+        <Image source={require('../assets/adaptive-icon.png')} style={styles.logo} resizeMode="contain" />
+      </View>
+
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.headerRow}>
-          <View style={styles.headerLeft}>
-            <Image source={require('../assets/logo.png')} style={styles.logo} resizeMode="contain" />
-            <View>
-              <Text style={styles.greeting}>{getGreeting()}</Text>
-              <Text style={styles.appTitle}>{t('home.app_title')}</Text>
-            </View>
-          </View>
+        <View style={styles.greetingRow}>
+          <Text style={styles.greeting}>{getGreeting()}</Text>
           {streak > 0 && (
             <View style={styles.streakBadge}>
               <Text style={styles.streakFire}>🔥</Text>
@@ -122,7 +123,7 @@ export default function HomeScreen() {
             {todaySession.workouts.map(w => (
               <TouchableOpacity key={w.id} style={styles.workoutRow} onPress={() => navigation.navigate('Timer', { workout: w })}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.workoutRowName}>{w.name}</Text>
+                  <Text style={styles.workoutRowName}>{localizedWorkout(w, lang).name}</Text>
                   <Text style={styles.workoutRowMeta}>{t('common.meta_compact', { hang: w.hangTime, reps: w.reps, sets: w.sets })}</Text>
                 </View>
                 <View style={styles.playBtn}><Text style={styles.playBtnText}>▶</Text></View>
@@ -197,11 +198,11 @@ function GridCard({ emoji, label, sub, onPress }: { emoji: string; label: string
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#1a1a1a' },
   scroll: { padding: 20, paddingBottom: 12 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, paddingTop: 8 },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  logo: { width: 44, height: 44 },
-  greeting: { color: '#888', fontSize: 13, marginBottom: 2 },
-  appTitle: { color: '#fff', fontSize: 30, fontWeight: '900', letterSpacing: -0.5 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, backgroundColor: '#2d2d2d', borderBottomWidth: 1, borderBottomColor: '#1e1e1e' },
+  logo: { width: 48, height: 48 },
+  greetingRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
+  greeting: { color: '#888', fontSize: 13 },
+  appTitle: { color: '#fff', fontSize: 20, fontWeight: '700', flex: 1, textAlign: 'center' },
   streakBadge: { backgroundColor: '#2d2d2d', borderRadius: 14, paddingVertical: 10, paddingHorizontal: 14, alignItems: 'center' },
   streakFire: { fontSize: 22 },
   streakNum: { color: '#fff', fontSize: 24, fontWeight: '800', lineHeight: 28 },

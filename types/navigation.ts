@@ -12,4 +12,6 @@ export type RootStackParamList = {
   CustomTraining: undefined;
   Onboarding: undefined;
   Settings: undefined;
+  Login: undefined;
+  Register: undefined;
 };

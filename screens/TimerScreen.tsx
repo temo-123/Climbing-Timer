@@ -13,6 +13,7 @@ import { globalStyles } from '../styles/globalStyles';
 import { TYPE_EMOJIS, localizedWorkout, getWorkoutPreviewImage } from '../data/constants';
 import Footer from '../components/Footer';
 import TopAlignedImage from '../components/TopAlignedImage';
+import { syncNow } from '../utils/sync';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Timer'>;
 type Phase = StepPhase;
@@ -139,19 +140,22 @@ export default function TimerScreen({ route, navigation }: Props) {
   const progress = currentDuration > 0 ? 1 - timeLeft / currentDuration : 0;
 
   const saveHistory = async (status: 'success' | 'failed', repsDone: number, setsDone: number) => {
+    const now = new Date().toISOString();
     const entry: HistoryEntry = {
-      date: new Date().toISOString(),
+      date: now,
       workoutName: workoutName,
       workoutType: workoutType as any,
       repsCompleted: repsDone,
       setsCompleted: setsDone,
       status,
+      updatedAt: now,
     };
     try {
       const stored = await AsyncStorage.getItem('history');
       const history: HistoryEntry[] = stored ? JSON.parse(stored) : [];
       history.push(entry);
       await AsyncStorage.setItem('history', JSON.stringify(history));
+      syncNow();
     } catch { /* ignore */ }
   };
 
@@ -413,7 +417,7 @@ const styles = StyleSheet.create({
     marginTop: 16, marginHorizontal: 16, borderRadius: 16,
   },
   bannerPlaceholder: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e2530' },
-  bannerPlaceholderEmoji: { fontSize: 56, opacity: 0.5 },
+  bannerPlaceholderEmoji: { fontSize: 110, opacity: 0.6 },
   bannerBackBtn: {
     position: 'absolute', top: 14, left: 14, backgroundColor: 'rgba(0,0,0,0.5)',
     borderRadius: 16, paddingHorizontal: 14, paddingVertical: 7,
@@ -421,7 +425,7 @@ const styles = StyleSheet.create({
   bannerBackText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   bannerTypeTag: {
     position: 'absolute', top: 14, right: 14, width: 34, height: 34, borderRadius: 17,
-    backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
   },
   bannerTypeTagText: { fontSize: 16 },
   titleBar: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 4 },

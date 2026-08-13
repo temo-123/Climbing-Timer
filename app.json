@@ -21,7 +21,8 @@
           "defaultChannel": "training-reminders"
         }
       ],
-      "expo-localization"
+      "expo-localization",
+      "expo-secure-store"
     ],
     "ios": {
       "supportsTablet": true,

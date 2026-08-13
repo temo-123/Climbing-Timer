@@ -9,6 +9,8 @@ import { RootStackParamList } from '../types/navigation';
 import { Workout, TrainingType } from '../types/models';
 import Footer from '../components/Footer';
 import { globalStyles } from '../styles/globalStyles';
+import MenuButton from '../components/MenuButton';
+import { syncNow } from '../utils/sync';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'CreateWorkout'>;
 
@@ -67,6 +69,7 @@ export default function WorkoutCreatorScreen() {
       reps: parsedReps,
       sets: parsedSets,
       recoverTime: parsedRecover,
+      updatedAt: new Date().toISOString(),
     };
 
     try {
@@ -74,6 +77,7 @@ export default function WorkoutCreatorScreen() {
       const workouts: Workout[] = stored ? JSON.parse(stored) : [];
       workouts.push(workout);
       await AsyncStorage.setItem('workouts', JSON.stringify(workouts));
+      syncNow();
       Alert.alert(t('creator.saved_title'), t('creator.saved_msg', { name }), [
         { text: t('common.ok'), onPress: () => navigation.goBack() },
       ]);
@@ -85,11 +89,11 @@ export default function WorkoutCreatorScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={globalStyles.header}>
+        <MenuButton align="left" />
+        <Text style={styles.headerTitle}>{t('creator.title')}</Text>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={globalStyles.backText}>{t('common.back')}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('creator.title')}</Text>
-        <View style={globalStyles.headerSpacer} />
       </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>

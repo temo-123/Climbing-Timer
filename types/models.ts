@@ -75,6 +75,12 @@ export interface Workout {
   // these directly instead of computing the sequence from hangTime/restTime/reps/sets.
   steps?: TrainingStep[];
   translations?: Record<string, WorkoutTranslation>;
+  // Sync bookkeeping (utils/sync.ts) — only meaningful for locally-created
+  // workouts, never set on API-fetched preset content. updatedAt drives
+  // last-write-wins merge; deletedAt is a tombstone so a delete on one device
+  // propagates instead of being silently un-done by a stale pull elsewhere.
+  updatedAt?: string;
+  deletedAt?: string;
 }
 
 export interface PlanSession {
@@ -141,4 +147,6 @@ export interface HistoryEntry {
   setsCompleted: number;
   status: 'success' | 'failed';
   planId?: string;
+  // Sync bookkeeping (utils/sync.ts) — see Workout.updatedAt.
+  updatedAt?: string;
 }

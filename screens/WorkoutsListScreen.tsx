@@ -10,6 +10,8 @@ import { Workout } from '../types/models';
 import { TYPE_EMOJIS } from '../data/constants';
 import Footer from '../components/Footer';
 import { globalStyles } from '../styles/globalStyles';
+import MenuButton from '../components/MenuButton';
+import { syncNow } from '../utils/sync';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'LoadWorkouts'>;
 
@@ -33,7 +35,8 @@ export default function WorkoutsListScreen() {
   const loadWorkouts = async () => {
     try {
       const stored = await AsyncStorage.getItem('workouts');
-      setWorkouts(stored ? JSON.parse(stored) : []);
+      const list: Workout[] = stored ? JSON.parse(stored) : [];
+      setWorkouts(list.filter(w => !w.deletedAt));
     } catch {
       Alert.alert(t('common.error'), t('workouts.load_error'));
     }
@@ -49,8 +52,13 @@ export default function WorkoutsListScreen() {
           try {
             const stored = await AsyncStorage.getItem('workouts');
             const list: Workout[] = stored ? JSON.parse(stored) : [];
-            await AsyncStorage.setItem('workouts', JSON.stringify(list.filter(w => w.id !== workoutId)));
+            // Tombstone, not a hard remove — utils/sync.ts needs the delete to
+            // survive locally long enough to propagate to the server.
+            const now = new Date().toISOString();
+            const updated = list.map(w => (w.id === workoutId ? { ...w, deletedAt: now, updatedAt: now } : w));
+            await AsyncStorage.setItem('workouts', JSON.stringify(updated));
             loadWorkouts();
+            syncNow();
           } catch {
             Alert.alert(t('common.error'), t('workouts.delete_error'));
           }
@@ -86,11 +94,11 @@ export default function WorkoutsListScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={globalStyles.header}>
+        <MenuButton align="left" />
+        <Text style={styles.headerTitle}>{t('workouts.title', { n: workouts.length })}</Text>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={globalStyles.backText}>{t('common.back')}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('workouts.title', { n: workouts.length })}</Text>
-        <View style={globalStyles.headerSpacer} />
       </View>
       <View style={globalStyles.content}>
         <FlatList

@@ -17,10 +17,13 @@ import AnalyticsScreen from './screens/AnalyticsScreen';
 import CustomTrainingScreen from './screens/CustomTrainingScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import SettingsScreen from './screens/SettingsScreen';
+import LoginScreen from './screens/LoginScreen';
+import RegisterScreen from './screens/RegisterScreen';
 
 import { RootStackParamList } from './types/navigation';
 import { initNotifications } from './utils/notifications';
 import { loadStoredLanguage } from './utils/i18n';
+import { fetchAuthUser } from './utils/auth';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -33,6 +36,9 @@ export default function App() {
     AsyncStorage.getItem('userProfile').then(v => {
       setInitialRoute(v ? 'Home' : 'Onboarding');
     }).catch(() => setInitialRoute('Home'));
+    // Non-blocking: refreshes/validates a stored session in the background.
+    // Doesn't gate initialRoute — an offline or logged-out device boots exactly as before.
+    fetchAuthUser();
   }, []);
 
   if (!initialRoute) {
@@ -58,6 +64,8 @@ export default function App() {
           <Stack.Screen name="CustomTraining" component={CustomTrainingScreen} />
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />
           <Stack.Screen name="Settings" component={SettingsScreen} />
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Register" component={RegisterScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

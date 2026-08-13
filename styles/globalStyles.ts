@@ -12,19 +12,16 @@ export const globalStyles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
-    paddingTop: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    backgroundColor: '#2d2d2d',
+    borderBottomWidth: 1,
+    borderBottomColor: '#1e1e1e',
   },
   backText: {
     color: '#4ecdc4',
     fontSize: 18,
     fontWeight: 'bold',
-    minWidth: 64,
-  },
-  // Mirrors backText's reserved width so a centered header title (flex:1,
-  // textAlign:'center') is centered on the whole header, not just the space
-  // to the right of the back button.
-  headerSpacer: {
     minWidth: 64,
   },
   title: {

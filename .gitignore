@@ -33,6 +33,9 @@ yarn-error.*
 # local env files
 .env*.local
 
+# Play Store service account key (fetched from CI secret, never committed)
+play-store-service-account.json
+
 # typescript
 *.tsbuildinfo
 

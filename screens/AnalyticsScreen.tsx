@@ -9,6 +9,7 @@ import { RootStackParamList } from '../types/navigation';
 import { HistoryEntry } from '../types/models';
 import { TYPE_EMOJIS } from '../data/constants';
 import { globalStyles } from '../styles/globalStyles';
+import MenuButton from '../components/MenuButton';
 import Footer from '../components/Footer';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Analytics'>;
@@ -103,9 +104,9 @@ export default function AnalyticsScreen() {
     return (
       <SafeAreaView style={globalStyles.container}>
         <View style={globalStyles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}><Text style={globalStyles.backText}>{t('common.back')}</Text></TouchableOpacity>
+          <MenuButton align="left" />
           <Text style={[globalStyles.title, styles.headerTitle]}>{t('analytics.title')}</Text>
-          <View style={globalStyles.headerSpacer} />
+          <TouchableOpacity onPress={() => navigation.goBack()}><Text style={globalStyles.backText}>{t('common.back')}</Text></TouchableOpacity>
         </View>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ color: '#aaa', fontSize: 16 }}>{t('common.loading')}</Text>
@@ -118,9 +119,9 @@ export default function AnalyticsScreen() {
   return (
     <SafeAreaView style={globalStyles.container}>
       <View style={globalStyles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}><Text style={globalStyles.backText}>{t('common.back')}</Text></TouchableOpacity>
+        <MenuButton align="left" />
         <Text style={[globalStyles.title, styles.headerTitle]}>{t('analytics.title')}</Text>
-        <View style={globalStyles.headerSpacer} />
+        <TouchableOpacity onPress={() => navigation.goBack()}><Text style={globalStyles.backText}>{t('common.back')}</Text></TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>

@@ -10,6 +10,7 @@ import { HistoryEntry } from '../types/models';
 import { TYPE_EMOJIS } from '../data/constants';
 import Footer from '../components/Footer';
 import { globalStyles } from '../styles/globalStyles';
+import MenuButton from '../components/MenuButton';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'History'>;
 
@@ -52,9 +53,9 @@ export default function HistoryScreen() {
     return (
       <SafeAreaView style={globalStyles.container}>
         <View style={globalStyles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}><Text style={globalStyles.backText}>{t('common.back')}</Text></TouchableOpacity>
+          <MenuButton align="left" />
           <Text style={[globalStyles.title, styles.headerTitle]}>{t('history.title')}</Text>
-          <View style={globalStyles.headerSpacer} />
+          <TouchableOpacity onPress={() => navigation.goBack()}><Text style={globalStyles.backText}>{t('common.back')}</Text></TouchableOpacity>
         </View>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ color: '#aaa', fontSize: 16 }}>{t('common.loading')}</Text>
@@ -67,9 +68,9 @@ export default function HistoryScreen() {
   return (
     <SafeAreaView style={globalStyles.container}>
       <View style={globalStyles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}><Text style={globalStyles.backText}>{t('common.back')}</Text></TouchableOpacity>
+        <MenuButton align="left" />
         <Text style={[globalStyles.title, styles.headerTitle]}>{t('history.title')}</Text>
-        <View style={globalStyles.headerSpacer} />
+        <TouchableOpacity onPress={() => navigation.goBack()}><Text style={globalStyles.backText}>{t('common.back')}</Text></TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>

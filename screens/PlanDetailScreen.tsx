@@ -13,6 +13,8 @@ import { requestNotificationPermissions, scheduleTrainingNotifications, cancelNo
 import { requestCalendarPermissions, addPlanToCalendar, removePlanFromCalendar } from '../utils/calendar';
 import { globalStyles } from '../styles/globalStyles';
 import Footer from '../components/Footer';
+import MenuButton from '../components/MenuButton';
+import { syncNow } from '../utils/sync';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PlanDetail'>;
 
@@ -78,6 +80,7 @@ export default function PlanDetailScreen({ route, navigation }: Props) {
     const updated = { ...plan!, ...updates };
     if (idx >= 0) plans[idx] = updated; else plans.push(updated);
     await AsyncStorage.setItem('plans', JSON.stringify(plans));
+    syncNow();
     return updated;
   };
 
@@ -91,6 +94,7 @@ export default function PlanDetailScreen({ route, navigation }: Props) {
       }
     }
     await AsyncStorage.setItem('plans', JSON.stringify(plans.map(p => ({ ...p, isActive: false }))));
+    syncNow();
   };
 
   const confirmActivate = async () => {
@@ -194,6 +198,8 @@ export default function PlanDetailScreen({ route, navigation }: Props) {
     return (
       <SafeAreaView style={globalStyles.container}>
         <View style={globalStyles.header}>
+          <MenuButton align="left" />
+          <View style={{ flex: 1 }} />
           <TouchableOpacity onPress={() => navigation.goBack()}><Text style={globalStyles.backText}>{t('common.back')}</Text></TouchableOpacity>
         </View>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 30 }}>
@@ -220,8 +226,11 @@ export default function PlanDetailScreen({ route, navigation }: Props) {
   return (
     <SafeAreaView style={globalStyles.container}>
       <View style={globalStyles.header}>
+        <MenuButton align="left" />
+        <View style={{ flex: 1, alignItems: 'center' }}>
+          {isActive && <View style={styles.activePill}><Text style={styles.activePillText}>{t('plans.active_badge')}</Text></View>}
+        </View>
         <TouchableOpacity onPress={() => navigation.goBack()}><Text style={globalStyles.backText}>{t('common.back')}</Text></TouchableOpacity>
-        {isActive && <View style={styles.activePill}><Text style={styles.activePillText}>{t('plans.active_badge')}</Text></View>}
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>

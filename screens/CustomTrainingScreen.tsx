@@ -10,6 +10,7 @@ import { Workout, TrainingType, UserProfile, Equipment } from '../types/models';
 import { fetchTrainings } from '../utils/api';
 import { TYPE_EMOJIS, DIFFICULTY_COLORS, getDifficultyLabel, localizedWorkout, getWorkoutPreviewImage } from '../data/constants';
 import { globalStyles } from '../styles/globalStyles';
+import MenuButton from '../components/MenuButton';
 import Footer from '../components/Footer';
 import TopAlignedImage from '../components/TopAlignedImage';
 
@@ -94,11 +95,11 @@ export default function CustomTrainingScreen() {
   return (
     <SafeAreaView style={globalStyles.container}>
       <View style={globalStyles.header}>
+        <MenuButton align="left" />
+        <Text style={styles.headerTitle}>{t('custom.title')}</Text>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={globalStyles.backText}>{t('common.back')}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('custom.title')}</Text>
-        <View style={globalStyles.headerSpacer} />
       </View>
 
       <View style={styles.tabs}>
@@ -160,7 +161,7 @@ export default function CustomTrainingScreen() {
                 <View style={styles.cardImage}>
                   {showImage
                     ? <TopAlignedImage uri={previewImage!} style={StyleSheet.absoluteFill} />
-                    : <View style={[StyleSheet.absoluteFill, styles.cardImagePlaceholder]}><Text style={{ fontSize: 40 }}>{TYPE_EMOJIS[ex.type]}</Text></View>
+                    : <View style={[StyleSheet.absoluteFill, styles.cardImagePlaceholder]}><Text style={styles.cardImagePlaceholderEmoji}>{TYPE_EMOJIS[ex.type]}</Text></View>
                   }
                   <View style={styles.cardImageBadge}><Text style={styles.cardImageBadgeText}>{TYPE_EMOJIS[ex.type]}</Text></View>
                 </View>
@@ -280,14 +281,14 @@ export default function CustomTrainingScreen() {
 
 const styles = StyleSheet.create({
   headerTitle: { color: '#fff', fontSize: 20, fontWeight: '700', flex: 1, textAlign: 'center' },
-  tabs: { flexDirection: 'row', paddingHorizontal: 16, gap: 8, paddingBottom: 12 },
+  tabs: { flexDirection: 'row', paddingHorizontal: 16, gap: 8, paddingBottom: 16 },
   tab: { flex: 1, backgroundColor: '#2d2d2d', borderRadius: 12, paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: 'transparent' },
   tabActive: { borderColor: '#4ecdc4', backgroundColor: '#1e3040' },
   tabEmoji: { fontSize: 20, marginBottom: 3 },
   tabLabel: { color: '#888', fontSize: 11, fontWeight: '600' },
   tabLabelActive: { color: '#4ecdc4' },
-  typeDesc: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 10 },
-  typeDescText: { color: '#aaa', fontSize: 13, flex: 1, marginRight: 10 },
+  typeDesc: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingHorizontal: 20, marginBottom: 16 },
+  typeDescText: { color: '#aaa', fontSize: 13, lineHeight: 18, flex: 1, marginRight: 16 },
   typeDescCount: { color: '#4ecdc4', fontSize: 13, fontWeight: '700' },
   scroll: { padding: 16, paddingBottom: 20 },
   centerState: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 20 },
@@ -301,11 +302,12 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: '#333',
     shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
   },
-  cardImage: { width: '100%', aspectRatio: 16 / 9, backgroundColor: '#1e2530' },
+  cardImage: { width: '100%', aspectRatio: 16 / 9, backgroundColor: '#1e2530', overflow: 'hidden' },
   cardImagePlaceholder: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e2530' },
+  cardImagePlaceholderEmoji: { fontSize: 90, opacity: 0.6 },
   cardImageBadge: {
     position: 'absolute', top: 10, left: 10, width: 34, height: 34, borderRadius: 17,
-    backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
   },
   cardImageBadgeText: { fontSize: 16 },
   cardBody: { padding: 14 },
