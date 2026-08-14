@@ -1,7 +1,10 @@
 name: EAS Build & Submit (Play Store)
 
-# Builds an Android App Bundle (AAB) with EAS and auto-submits it to the
-# Play Store "internal" track on every push to master.
+# Builds an Android App Bundle (AAB) with EAS on every push to master.
+# Auto-submit to the Play Store "internal" track is temporarily disabled —
+# the app hasn't had its first manual AAB upload to Play Console yet, so
+# automated submission isn't ready. Re-add PLAY_STORE_SERVICE_ACCOUNT_JSON
+# steps and the --auto-submit flag below once that's done.
 on:
   push:
     branches:
@@ -30,14 +33,5 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Write Play Store service account key
-        run: echo "$PLAY_STORE_SERVICE_ACCOUNT_JSON" > play-store-service-account.json
-        env:
-          PLAY_STORE_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
-
-      - name: Build and submit AAB
-        run: eas build --platform android --profile production --non-interactive --auto-submit
-
-      - name: Clean up service account key
-        if: always()
-        run: rm -f play-store-service-account.json
+      - name: Build AAB
+        run: eas build --platform android --profile production --non-interactive
