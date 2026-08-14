@@ -2,7 +2,7 @@
   "expo": {
     "name": "Climbing Trainer",
     "slug": "climbing-trainer",
-    "version": "1.0.0",
+    "version": "2.1.5",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",

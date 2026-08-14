@@ -1,6 +1,6 @@
 {
   "name": "climbing-trainer",
-  "version": "1.0.0",
+  "version": "2.1.5",
   "main": "index.ts",
   "scripts": {
     "start": "expo start",
