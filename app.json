@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Climbing Trainer",
-    "slug": "climbing-trainer",
+    "slug": "climbing-timer",
     "version": "2.1.5",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
