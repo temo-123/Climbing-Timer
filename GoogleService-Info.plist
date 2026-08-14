@@ -9,7 +9,7 @@
     <key>PLIST_VERSION</key>
     <string>1</string>
     <key>BUNDLE_ID</key>
-    <string>com.climbingtimer.app</string>
+    <string>ge.climbingtrainer.app</string>
     <key>PROJECT_ID</key>
     <string>climbing-timer-d4d28</string>
     <key>STORAGE_BUCKET</key>

@@ -1,8 +1,12 @@
 name: EAS Build (APK)
 
-# Manual/on-demand APK build for sideloading, QA, or sharing outside the
-# Play Store. Does not submit anywhere.
+# APK build for sideloading, QA, or sharing outside the Play Store. Runs
+# alongside the AAB build (eas-build-submit.yml) on every push to master,
+# and can also be triggered manually. Does not submit anywhere.
 on:
+  push:
+    branches:
+      - master
   workflow_dispatch: {}
 
 jobs:
